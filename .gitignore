@@ -1,0 +1,16 @@
+# Developer tools' files
+.lite_workspace.lua
+/.tmp
+
+# Neutralinojs binaries and builds
+/bin
+/dist
+resources/icons/MUSIX
+
+# Neutralinojs client (minified)
+neutralino.js
+
+# Neutralinojs related files
+.storage
+*.log
+LICENSE
