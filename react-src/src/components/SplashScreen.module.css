@@ -1,21 +1,22 @@
 .splashScreen {
-    text-align: center;
-    background-color: white;
-    width: 256px;
-    height: 256px;
-    border-radius: 24px;
-    overflow: hidden;
+    height: 100%;
+    width: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
 }
 
+
 .logo {
+    position: absolute;
     height: 42px;
     width: auto;
     pointer-events: none;
     user-select: none;
+    -webkit-user-drag: none;
     margin-bottom: 12px;
+    animation: fadeIn 0.5s ease-in-out;
+    animation-fill-mode: forwards;
 }
 
 .credit {
@@ -24,4 +25,12 @@
     font-size: 9px;
     color: rgba(43, 15, 15, 0.6);
     bottom: 0px;
+    user-select: none;
+    pointer-events: none;
+}
+
+
+@keyframes fadeIn {
+    0% { opacity: 0; translate: 0px 20px; }
+    100% { opacity: 1; translate: 0px 0px; }
 }
