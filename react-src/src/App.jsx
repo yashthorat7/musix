@@ -1,15 +1,12 @@
-import { useEffect } from 'react'
+import SplashScreen from './components/SplashScreen';
 import './App.css';
 
-// Import filesystem namespace
-import { filesystem } from "@neutralinojs/lib"
 
 function App() {
+  const isLoading = true;
 
   return (
-    <div className="App">
-      My Neutralinojs App
-    </div>
+    isLoading ? <SplashScreen /> : null
   );
 }
 

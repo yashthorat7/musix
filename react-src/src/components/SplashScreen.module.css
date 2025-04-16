@@ -1,0 +1,27 @@
+.splashScreen {
+    text-align: center;
+    background-color: white;
+    width: 256px;
+    height: 256px;
+    border-radius: 24px;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.logo {
+    height: 42px;
+    width: auto;
+    pointer-events: none;
+    user-select: none;
+    margin-bottom: 12px;
+}
+
+.credit {
+    position: absolute;
+    letter-spacing: 6px;
+    font-size: 9px;
+    color: rgba(43, 15, 15, 0.6);
+    bottom: 0px;
+}
