@@ -1,4 +1,5 @@
 .app {
+  position: absolute;
   text-align: center;
   background-color: white;
   width: 256px;

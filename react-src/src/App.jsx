@@ -11,9 +11,6 @@ function App() {
     const timeout = setTimeout(() => {
       setIsLoading(false);
     }, 1500);
-    // const interval = setInterval(() => {
-    //   window.location.reload();
-    // }, 10000);
 
     const preventZoom = (e) => {
       if (e.ctrlKey || e.metaKey) e.preventDefault();
