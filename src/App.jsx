@@ -1,14 +1,23 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { moveWindow, Position } from "@tauri-apps/plugin-positioner";
 moveWindow(Position.BottomRight);
 import "./App.css";
-
+import Splash from "./components/Splash";
+import Player from "./components/Player";
 
 function App() {
 
+  const [isSplash, setIsSplash] = useState(true);
+
+  useEffect(() => {
+    setTimeout(() => {
+      setIsSplash(false);
+    }, 3000);
+  }, []);
+  
   return (
     <main className="container">
-      <h1>Welcome to Tauri + React</h1>
+      {isSplash ? <Splash /> : <Player />}
     </main>
   );
 }

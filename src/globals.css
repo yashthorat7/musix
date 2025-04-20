@@ -6,7 +6,6 @@ html, body, #root {
   overflow: hidden;
   background-color: transparent;
   border: none;
-  box-sizing: border-box;
 }
 
 #root {

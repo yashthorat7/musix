@@ -1,0 +1,42 @@
+.container {
+    width: 256px;
+    height: 256px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    background: rgb(255, 255, 255);
+}
+
+
+.logo {
+    position: relative;
+    height: 42px;
+    width: auto;
+    user-select: none;
+    margin-bottom: 12px;
+    -webkit-user-drag: none;
+    animation: swipeIn 0.5s ease-in-out;
+}
+
+.credit {
+    position: absolute;
+    letter-spacing: 6px;
+    font-size: 9px;
+    color: rgba(43, 15, 15, 0.6);
+    bottom: 0px;
+    user-select: none;
+    pointer-events: none;
+    animation: fadeIn 1s ease-in-out;
+}
+
+
+@keyframes fadeIn {
+    0% { opacity: 0;}
+    100% { opacity: 1;}
+}
+
+@keyframes swipeIn {
+    0% { opacity: 0; translate: 0px 20px; }
+    100% { opacity: 1; translate: 0px 0px; }
+}
