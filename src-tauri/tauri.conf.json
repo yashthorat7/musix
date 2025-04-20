@@ -13,8 +13,16 @@
     "windows": [
       {
         "title": "musix",
-        "width": 800,
-        "height": 600
+        "width": 256,
+        "height": 256,
+        "resizable": false,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "center": false,
+        "fullscreen": false,
+        "maximizable": false,
+        "shadow": false
       }
     ],
     "security": {
