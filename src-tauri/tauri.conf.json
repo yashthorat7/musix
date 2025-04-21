@@ -22,7 +22,8 @@
         "center": false,
         "fullscreen": false,
         "maximizable": false,
-        "shadow": false
+        "shadow": false,
+        "dragDropEnabled": true
       }
     ],
     "security": {

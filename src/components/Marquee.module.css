@@ -1,0 +1,29 @@
+.title {
+    width: 100%;
+    overflow: hidden;
+}
+
+.marquee {
+    overflow: hidden;
+    white-space: nowrap;
+    position: relative;
+}
+
+.track {
+    display: inline-block;
+    white-space: nowrap;
+    animation: scrollLoop 12s linear infinite;
+}
+
+.track span {
+    display: inline-block;
+    padding-right: 2rem;
+    color: #F97979;
+    font-size: 13px;
+}
+
+@keyframes scrollLoop {
+    0% { transform: translateX(0); }
+    100% {  transform: translateX(-1.3%); }
+}
+  
