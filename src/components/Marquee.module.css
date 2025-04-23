@@ -18,12 +18,15 @@
 .track span {
     display: inline-block;
     padding-right: 2rem;
-    color: #F97979;
+    color: #f97979;
     font-size: 13px;
 }
 
 @keyframes scrollLoop {
-    0% { transform: translateX(0); }
-    100% {  transform: translateX(-1.3%); }
+    0% {
+        transform: translateX(0);
+    }
+    100% {
+        transform: translateX(-1.3%);
+    }
 }
-  
