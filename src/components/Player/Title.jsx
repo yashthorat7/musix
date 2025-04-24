@@ -17,4 +17,4 @@ const Title = ({ text, repeat = 80 }) => {
     );
 };
 
-export default Title; 
+export default Title;

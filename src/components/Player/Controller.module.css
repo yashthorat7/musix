@@ -32,9 +32,11 @@
     margin-right: 6px;
 }
 
-.forwardArrow:hover, .reverseArrow:hover {
+.forwardArrow:hover,
+.reverseArrow:hover {
     filter: brightness(0.8);
 }
+
 .timeDisplay {
     display: flex;
     align-items: center;
@@ -42,7 +44,8 @@
     font-size: 12px;
 }
 
-.currentTime, .duration {
+.currentTime,
+.duration {
     margin: 0 2px;
 }
 

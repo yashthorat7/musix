@@ -1,9 +1,10 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import styles from './Disc.module.css';
+import styles from './Player.module.css';
 import Title from './Title';
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import Hand from './Hand';
-import Player from './Player';
+import Controller from './Controller';
+import Disc from './Disc';
 
 function useFileDrop(onFileDrop) {
     const handleDrop = useCallback(
@@ -24,7 +25,7 @@ function useFileDrop(onFileDrop) {
     }, [handleDrop]);
 }
 
-export default function Disc({ filePath: initialFilePath }) {
+function Player({ filePath: initialFilePath }) {
     const [droppedFile, setDroppedFile] = useState(initialFilePath || '');
     const [isDragging, setIsDragging] = useState(false);
     const filePath = droppedFile || initialFilePath;
@@ -60,20 +61,11 @@ export default function Disc({ filePath: initialFilePath }) {
     return (
         <div className={styles.container}>
             <Title text={fileName} />
-            <div className={styles.discWrapper}>
-                <div className={styles.disc}>
-                    <img
-                        src="/image1.png"
-                        className={styles.discImage}
-                        onError={(e) => (e.currentTarget.style.display = 'none')}
-                        alt=""
-                    />
-                </div>
-                <div className={styles.discInner}></div>
-                <div className={styles.discCenter}></div>
-            </div>
+            <Disc />
             <Hand onClose={handleClose} />
-            <Player />
+            <Controller />
         </div>
     );
-} 
+}
+
+export default Player;

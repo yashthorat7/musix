@@ -1,15 +1,17 @@
 import React from 'react';
-import styles from './Player.module.css';
+import styles from './Controller.module.css';
 
-function Player() {
+function Controller() {
     return (
         <div className={styles.container}>
             <div className={styles.controls}>
                 <button className={styles.button}>
-                    <img src="/icons/double-arrow.svg"
-                    className={styles.reverseArrow}
-                    onError={(e) => (e.currentTarget.style.display = 'none')}
-                    alt="" />
+                    <img
+                        src="/icons/double-arrow.svg"
+                        className={styles.reverseArrow}
+                        onError={(e) => (e.currentTarget.style.display = 'none')}
+                        alt=""
+                    />
                 </button>
                 <div className={styles.timeDisplay}>
                     <span className={styles.currentTime}>3:55</span>
@@ -17,10 +19,12 @@ function Player() {
                     <span className={styles.duration}>5:30</span>
                 </div>
                 <button className={styles.button}>
-                    <img src="/icons/double-arrow.svg"
-                    className={styles.forwardArrow}
-                    onError={(e) => (e.currentTarget.style.display = 'none')}
-                    alt="" />
+                    <img
+                        src="/icons/double-arrow.svg"
+                        className={styles.forwardArrow}
+                        onError={(e) => (e.currentTarget.style.display = 'none')}
+                        alt=""
+                    />
                 </button>
             </div>
             <div className={styles.progressContainer}>
@@ -32,4 +36,4 @@ function Player() {
     );
 }
 
-export default Player;
+export default Controller;
