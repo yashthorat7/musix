@@ -1,7 +1,7 @@
 import React from 'react';
-import styles from './Marquee.module.css';
+import styles from './Title.module.css';
 
-const Marquee = ({ text, repeat = 80 }) => {
+const Title = ({ text, repeat = 80 }) => {
     const repeatedText = Array.from({ length: repeat }, () => text);
 
     return (
@@ -17,4 +17,4 @@ const Marquee = ({ text, repeat = 80 }) => {
     );
 };
 
-export default Marquee;
+export default Title; 

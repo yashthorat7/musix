@@ -1,6 +1,9 @@
 .title {
-    width: 100%;
+    width: 171px;
     overflow: hidden;
+    white-space: nowrap;
+    position: absolute;
+    top: 10px;
 }
 
 .marquee {
@@ -30,3 +33,12 @@
         transform: translateX(-1.3%);
     }
 }
+
+@keyframes scrollText {
+    0% {
+        transform: translateX(0);
+    }
+    100% {
+        transform: translateX(-100%);
+    }
+} 
