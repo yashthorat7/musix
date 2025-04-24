@@ -3,6 +3,7 @@ import styles from './Disc.module.css';
 import Title from './Title';
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import Hand from './Hand';
+import Player from './Player';
 
 function useFileDrop(onFileDrop) {
     const handleDrop = useCallback(
@@ -72,6 +73,7 @@ export default function Disc({ filePath: initialFilePath }) {
                 <div className={styles.discCenter}></div>
             </div>
             <Hand onClose={handleClose} />
+            <Player />
         </div>
     );
 } 

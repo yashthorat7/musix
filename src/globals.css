@@ -8,11 +8,8 @@ body,
     overflow: hidden;
     background-color: transparent;
     border: none;
-}
-
-#root {
     display: flex;
     justify-content: center;
     align-items: center;
-    background: transparent;
 }
+
