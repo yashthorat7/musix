@@ -1,12 +1,12 @@
 import React from 'react';
 import styles from './Disc.module.css';
 
-function Disc() {
+function Disc({ coverArt }) {
     return (
         <div className={styles.discWrapper}>
             <div className={styles.disc}>
                 <img
-                    src="/images/image1.png"
+                    src={coverArt || "/images/image1.png"}
                     className={styles.discImage}
                     onError={(e) => (e.currentTarget.style.display = 'none')}
                     alt=""

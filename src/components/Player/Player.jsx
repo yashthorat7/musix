@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import styles from './Player.module.css';
 import Title from './Title';
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
+import { invoke } from '@tauri-apps/api/core';
 import Hand from './Hand';
 import Controller from './Controller';
 import Disc from './Disc';
@@ -27,14 +28,26 @@ function useFileDrop(onFileDrop) {
 
 function Player({ filePath: initialFilePath }) {
     const [droppedFile, setDroppedFile] = useState(initialFilePath || '');
-    const [isDragging, setIsDragging] = useState(false);
+    const [metadata, setMetadata] = useState(null);
     const filePath = droppedFile || initialFilePath;
     const fileName = filePath ? filePath.split(/[/\\]/).pop() : null;
+
+    const extractMetadata = async (path) => {
+        try {
+            const metadata = await invoke('extract_metadata', { filepath: path });
+            console.log('Extracted Metadata:', metadata);
+            setMetadata(metadata);
+            return metadata;
+        } catch (error) {
+            console.error('Error extracting metadata:', error);
+            return null;
+        }
+    };
 
     useFileDrop((path) => {
         if (path.toLowerCase().endsWith('.mp3')) {
             setDroppedFile(path);
-            setIsDragging(false);
+            extractMetadata(path);
         }
     });
 
@@ -54,16 +67,22 @@ function Player({ filePath: initialFilePath }) {
         };
     }, []);
 
+    useEffect(() => {
+        if (initialFilePath) {
+            extractMetadata(initialFilePath);
+        }
+    }, [initialFilePath]);
+
     const handleClose = () => {
         window.location.reload();
     };
 
     return (
         <div className={styles.container}>
-            <Title text={fileName} />
-            <Disc />
+            <Title text={metadata?.title || fileName} />
+            <Disc coverArt={metadata?.cover_art} />
             <Hand onClose={handleClose} />
-            <Controller />
+            <Controller metadata={metadata} />
         </div>
     );
 }

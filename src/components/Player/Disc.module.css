@@ -6,7 +6,7 @@
     justify-content: center;
     align-items: center;
     animation: pop 0.3s ease-out;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
 }
 
 .disc {
@@ -28,6 +28,8 @@
 }
 
 .discImage {
+    height: 172px;
+    width: 172px;
     user-select: none;
     touch-action: none;
     -webkit-user-select: none;

@@ -25,11 +25,11 @@
 
 .reverseArrow {
     transform: rotate(180deg);
-    margin-left: 6px;
+    margin-left: 2px;
 }
 
 .forwardArrow {
-    margin-right: 6px;
+    margin-right: 2px;
 }
 
 .forwardArrow:hover,
