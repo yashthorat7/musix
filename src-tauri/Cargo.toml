@@ -24,6 +24,8 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 audiotags = "0.5.0"
 base64 = "0.22.1"
+id3 = "1.16.2"
+symphonia = { version = "0.5.3", features = ["mp3", "aac", "wav", "flac"] }
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-positioner = "2"
