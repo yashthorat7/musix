@@ -24,11 +24,6 @@
 
 .reverseArrow {
     transform: rotate(180deg);
-    margin-left: 2px;
-}
-
-.forwardArrow {
-    margin-right: 2px;
 }
 
 .forwardArrow:hover,
@@ -61,6 +56,7 @@
     padding-top: 5px;
     height: 14px;
     width: 100%;
+    -webkit-app-region: no-drag;
 }
 
 .progressBar {
@@ -68,7 +64,6 @@
     background: #ffffff;
     border-radius: 3px;
     position: relative;
-    overflow: hidden;
     box-shadow: inset 0 1px 4px rgba(0, 5, 49, 0.37);
 }
 
@@ -79,4 +74,21 @@
     position: absolute;
     left: 0;
     top: 0;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    overflow: visible;
+}
+
+.progressHandle {
+    width: 6px;
+    height: 6px;
+    background: #ff5353;
+    border-radius: 50%;
+    transition: transform 0.1s ease;
+    transform: scale(1);
+}
+
+.progressBar:hover .progressHandle {
+    transform: scale(1.2);
 }

@@ -34,7 +34,9 @@ function Player({ filePath: initialFilePath }) {
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
     const [isDragging, setIsDragging] = useState(false);
+    const [isDiscReady, setIsDiscReady] = useState(false);
     const audioRef = useRef(null);
+    const clickTimeoutRef = useRef(null);
     const filePath = droppedFile || initialFilePath;
     const fileName = filePath ? filePath.split(/[/\\]/).pop() : null;
 
@@ -62,18 +64,11 @@ function Player({ filePath: initialFilePath }) {
                 audioRef.current.onloadedmetadata = () => {
                     console.log('Audio metadata loaded, duration:', audioRef.current.duration);
                     setDuration(audioRef.current.duration);
+                    setIsDiscReady(true);
                 };
 
                 audioRef.current.oncanplaythrough = () => {
                     console.log('Audio can play through');
-                    if (isPlaying) {
-                        const playPromise = audioRef.current.play();
-                        if (playPromise) {
-                            playPromise.catch((error) => {
-                                console.error('Error playing audio:', error);
-                            });
-                        }
-                    }
                 };
             }
         } catch (error) {
@@ -81,11 +76,14 @@ function Player({ filePath: initialFilePath }) {
         }
     };
 
-    const togglePlay = () => {
-        if (!audioRef.current) return;
-
-        // console.log('Toggle play, current state:', isPlaying);
-
+    const togglePlay = useCallback(() => {
+        if (!audioRef.current || !isDiscReady) return;
+        
+        if (clickTimeoutRef.current) {
+            clearTimeout(clickTimeoutRef.current);
+            clickTimeoutRef.current = null;
+        }
+        
         if (isPlaying) {
             audioRef.current.pause();
         } else {
@@ -96,9 +94,10 @@ function Player({ filePath: initialFilePath }) {
                 });
             }
         }
-
+        
         setIsPlaying(!isPlaying);
-    };
+
+    }, [isPlaying, isDiscReady]);
 
     const handleSeek = (time) => {
         if (audioRef.current) {
@@ -124,8 +123,19 @@ function Player({ filePath: initialFilePath }) {
     useFileDrop((path) => {
         if (path.toLowerCase().endsWith('.mp3')) {
             setDroppedFile(path);
+            setIsDiscReady(false);
+            
             extractMetadata(path).then(() => {
-                loadAudio(path);
+                loadAudio(path).then(() => {
+                    setTimeout(() => {
+                        if (audioRef.current && isDiscReady) {
+                            audioRef.current.play().catch(err => {
+                                console.error('Error auto-playing dropped file:', err);
+                            });
+                            setIsPlaying(true);
+                        }
+                    }, 300);
+                });
             });
         }
     });
@@ -148,6 +158,7 @@ function Player({ filePath: initialFilePath }) {
 
     useEffect(() => {
         if (initialFilePath) {
+            setIsDiscReady(false);
             extractMetadata(initialFilePath).then(() => {
                 loadAudio(initialFilePath);
             });
@@ -177,6 +188,16 @@ function Player({ filePath: initialFilePath }) {
         };
     }, []);
 
+    useEffect(() => {
+        if (isDiscReady && droppedFile && audioRef.current) {
+            audioRef.current.play().catch(err => {
+                console.error('Error auto-playing after disc ready:', err);
+                setIsPlaying(false);
+            });
+            setIsPlaying(true);
+        }
+    }, [isDiscReady, droppedFile]);
+
     const handleClose = () => {
         window.location.reload();
     };
@@ -185,7 +206,11 @@ function Player({ filePath: initialFilePath }) {
         <div className={styles.container}>
             <audio ref={audioRef} />
             <Title text={metadata?.title || fileName} />
-            <Disc coverArt={metadata?.cover_art} isPlaying={isPlaying} onTogglePlay={togglePlay} />
+            <Disc 
+                coverArt={metadata?.cover_art} 
+                isPlaying={isPlaying} 
+                onTogglePlay={togglePlay} 
+            />
             <Hand onClose={handleClose} />
             <Controller
                 metadata={metadata}
