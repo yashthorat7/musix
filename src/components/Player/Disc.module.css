@@ -7,6 +7,7 @@
     align-items: center;
     animation: pop 0.3s ease-out;
     margin-bottom: 10px;
+    /* background: #f8a8a879; */
 }
 
 .disc {
@@ -15,7 +16,6 @@
     height: 172px;
     border-radius: 50%;
     box-shadow: 0 0 16px #25358f5b;
-    animation: spin 25s linear infinite;
     pointer-events: none;
     user-select: none;
     touch-action: none;
@@ -25,6 +25,12 @@
         radial-gradient(circle at bottom left, #ff000d, transparent 70%),
         radial-gradient(circle at bottom right, #ff39e5, transparent 70%);
     background-size: cover;
+    animation: spin 25s linear infinite;
+    animation-play-state: paused;
+}
+
+.spinning {
+    animation-play-state: running;
 }
 
 .discImage {

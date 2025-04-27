@@ -4,14 +4,13 @@
     display: flex;
     flex-direction: column;
     width: 216px;
-    padding: 8px;
 }
 
 .controls {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 5px;
+    margin-bottom: 0;
 }
 
 .button {
@@ -59,6 +58,8 @@
 }
 
 .progressContainer {
+    padding-top: 5px;
+    height: 14px;
     width: 100%;
 }
 
