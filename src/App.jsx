@@ -16,11 +16,7 @@ function App() {
         return () => clearTimeout(timer);
     }, []);
 
-    return (
-        <main className="container">
-            {isSplash ? <Splash /> : <Player filePath="" />}
-        </main>
-    );
+    return <main className="container">{isSplash ? <Splash /> : <Player filePath="" />}</main>;
 }
 
 export default App;

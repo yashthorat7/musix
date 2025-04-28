@@ -79,12 +79,12 @@ function Player({ filePath: initialFilePath }) {
 
     const togglePlay = useCallback(() => {
         if (!audioRef.current || !isDiscReady) return;
-        
+
         if (clickTimeoutRef.current) {
             clearTimeout(clickTimeoutRef.current);
             clickTimeoutRef.current = null;
         }
-        
+
         if (isPlaying) {
             audioRef.current.pause();
         } else {
@@ -95,9 +95,8 @@ function Player({ filePath: initialFilePath }) {
                 });
             }
         }
-        
-        setIsPlaying(!isPlaying);
 
+        setIsPlaying(!isPlaying);
     }, [isPlaying, isDiscReady]);
 
     const handleSeek = (time) => {
@@ -125,12 +124,12 @@ function Player({ filePath: initialFilePath }) {
         if (path.toLowerCase().endsWith('.mp3')) {
             setDroppedFile(path);
             setIsDiscReady(false);
-            
+
             extractMetadata(path).then(() => {
                 loadAudio(path).then(() => {
                     setTimeout(() => {
                         if (audioRef.current && isDiscReady) {
-                            audioRef.current.play().catch(err => {
+                            audioRef.current.play().catch((err) => {
                                 console.error('Error auto-playing dropped file:', err);
                             });
                             setIsPlaying(true);
@@ -191,7 +190,7 @@ function Player({ filePath: initialFilePath }) {
 
     useEffect(() => {
         if (isDiscReady && droppedFile && audioRef.current) {
-            audioRef.current.play().catch(err => {
+            audioRef.current.play().catch((err) => {
                 console.error('Error auto-playing after disc ready:', err);
                 setIsPlaying(false);
             });
@@ -208,11 +207,7 @@ function Player({ filePath: initialFilePath }) {
             <Minimizer />
             <audio ref={audioRef} />
             <Title text={metadata?.title || fileName} />
-            <Disc 
-                coverArt={metadata?.cover_art} 
-                isPlaying={isPlaying} 
-                onTogglePlay={togglePlay} 
-            />
+            <Disc coverArt={metadata?.cover_art} isPlaying={isPlaying} onTogglePlay={togglePlay} />
             <Hand onClose={handleClose} />
             <Controller
                 metadata={metadata}

@@ -105,7 +105,10 @@ function Controller({
                 ref={progressBarRef}
             >
                 <div className={styles.progressBar}>
-                    <div className={styles.progressFill} style={{ width: `${progressPercentage}%` }}>
+                    <div
+                        className={styles.progressFill}
+                        style={{ width: `${progressPercentage}%` }}
+                    >
                         <div className={styles.progressHandle}></div>
                     </div>
                 </div>
