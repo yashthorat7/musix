@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { moveWindow, Position } from '@tauri-apps/plugin-positioner';
 import './App.css';
 import Splash from './components/Splash/Splash';
-import Disc from './components/Player/Player';
+import Player from './components/Player/Player';
 
 moveWindow(Position.BottomRight);
 
@@ -16,7 +16,11 @@ function App() {
         return () => clearTimeout(timer);
     }, []);
 
-    return <main className="container">{isSplash ? <Splash /> : <Disc filePath="" />}</main>;
+    return (
+        <main className="container">
+            {isSplash ? <Splash /> : <Player filePath="" />}
+        </main>
+    );
 }
 
 export default App;

@@ -6,6 +6,7 @@ import { invoke } from '@tauri-apps/api/core';
 import Hand from './Hand';
 import Controller from './Controller';
 import Disc from './Disc';
+import Minimizer from '../Sidebar/Minimizer';
 import { convertFileSrc } from '@tauri-apps/api/core';
 
 function useFileDrop(onFileDrop) {
@@ -204,6 +205,7 @@ function Player({ filePath: initialFilePath }) {
 
     return (
         <div className={styles.container}>
+            <Minimizer />
             <audio ref={audioRef} />
             <Title text={metadata?.title || fileName} />
             <Disc 
