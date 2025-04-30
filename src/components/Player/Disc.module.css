@@ -26,12 +26,21 @@
         radial-gradient(circle at bottom left, #ff000d, transparent 70%),
         radial-gradient(circle at bottom right, #ff39e5, transparent 70%);
     background-size: cover;
-    animation: spin 25s linear infinite;
-    animation-play-state: paused;
+    background-position: center;
+    will-change: transform;
 }
 
-.spinning {
-    animation-play-state: running;
+.seeking {
+    animation: none;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .discImage {
@@ -49,7 +58,7 @@
     border-radius: 50%;
     width: 72px;
     height: 72px;
-    background-color: rgba(0, 0, 0, 0.75);
+    background-color: rgba(0, 0, 0, 0.8);
 }
 
 .discCenter {
@@ -70,14 +79,5 @@
     }
     100% {
         transform: scale(1);
-    }
-}
-
-@keyframes spin {
-    0% {
-        transform: rotate(0deg);
-    }
-    100% {
-        transform: rotate(360deg);
     }
 }

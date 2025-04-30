@@ -1,18 +1,19 @@
 import React, { useRef, useEffect, useState } from 'react';
 import styles from './Title.module.css';
 
-const Title = ({ text, repeat = 80, speed = 50 }) => {
+function Title({ text, repeat = 80, speed = 50 }) {
     const trackRef = useRef(null);
     const [duration, setDuration] = useState(0);
 
-    const repeatedText = Array.from({ length: repeat }, () => text);
+    const titleText = text || 'Musix';
+    const repeatedText = Array.from({ length: repeat }, () => titleText);
 
     useEffect(() => {
         if (trackRef.current) {
             const trackWidth = trackRef.current.scrollWidth;
             setDuration(trackWidth / speed);
         }
-    }, [text, repeat, speed]);
+    }, [titleText, repeat, speed]);
 
     return (
         <div className={styles.title}>
@@ -32,6 +33,6 @@ const Title = ({ text, repeat = 80, speed = 50 }) => {
             </div>
         </div>
     );
-};
+}
 
 export default Title;
