@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import styles from './SideBar.module.css';
 import { useAudio } from '../../context/AudioContext';
 
-function SideBar({ isOpen }) {
+function SideBar({ isOpen, activePanel, onPanelChange, setSidebarOpen }) {
     const [volume, setVolume] = useState(0.5);
     const [isDragging, setIsDragging] = useState(false);
     const sliderRef = useRef(null);
@@ -53,14 +53,54 @@ function SideBar({ isOpen }) {
         };
     }, [isDragging]);
 
+    const handlePanelClick = (panel) => {
+        if (activePanel === panel) {
+            onPanelChange(null);
+            setSidebarOpen(false);
+        } else {
+            onPanelChange(panel);
+            setSidebarOpen(true);
+        }
+    };
+
     return (
         <div className={styles.container}>
-            <div className="sidebar-trigger"></div>
+            <div
+                className={styles.navigator}
+                style={{
+                    display:
+                        activePanel === 'directory' || activePanel === 'equalizer'
+                            ? 'flex'
+                            : 'none',
+                }}
+            >
+                <button
+                    className={styles.backButton}
+                    onClick={() => {
+                        onPanelChange(null);
+                        setSidebarOpen(false);
+                    }}
+                >
+                    <img src="/icons/back.svg" alt="Back" />
+                </button>
+                <button
+                    className={styles.githubButton}
+                    onClick={() => window.open('https://github.com/yashthorat7', '_blank')}
+                >
+                    <img src="/icons/github.svg" alt="Github" />
+                </button>
+            </div>
             <div className={`${styles.tray} ${isOpen ? styles.trayOpen : ''}`}>
-                <button className={styles.iconButton}>
+                <button
+                    className={`${styles.iconButton} ${activePanel === 'directory' ? styles.active : ''}`}
+                    onClick={() => handlePanelClick('directory')}
+                >
                     <img src="/icons/directory.svg" alt="Open Folder" />
                 </button>
-                <button className={styles.iconButton}>
+                <button
+                    className={`${styles.iconButton} ${activePanel === 'equalizer' ? styles.active : ''}`}
+                    onClick={() => handlePanelClick('equalizer')}
+                >
                     <img src="/icons/equalizer.svg" alt="Equalizer" />
                 </button>
 
