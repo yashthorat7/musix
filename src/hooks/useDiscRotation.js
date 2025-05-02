@@ -77,8 +77,8 @@ export function useDiscRotation(currentTime, isPlaying, isSeeking, coverArt) {
                 radial-gradient(circle at bottom right, ${gradientRef.current.bottomRight}, transparent 70%)`;
 
         return {
-            background: coverArt
-                ? `url(${coverArt}) center/cover no-repeat, ${gradientBackground}`
+            backgroundImage: coverArt
+                ? `url(${coverArt}), ${gradientBackground}`
                 : gradientBackground,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
