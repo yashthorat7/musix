@@ -21,7 +21,7 @@ export const useSidebar = () => {
                 const { clientX, clientY } = event || lastMousePosition.current;
 
                 let isOutside =
-                    clientX < 6 ||
+                    clientX < 4 ||
                     clientX > windowSize.width - 16 ||
                     clientY < 16 ||
                     clientY > windowSize.height - 6;
