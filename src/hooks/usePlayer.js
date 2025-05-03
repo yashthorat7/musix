@@ -4,16 +4,11 @@ import { useFileDrop } from './useFileDrop';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 
 export function usePlayer() {
-    const { metadata, loadFile, fileName } = useAudio();
+    const { metadata, loadFile, fileName, processSongs } = useAudio();
 
-    const handleFileDrop = useCallback(
-        (path) => {
-            if (path.toLowerCase().endsWith('.mp3')) {
-                loadFile(path);
-            }
-        },
-        [loadFile],
-    );
+    const handleFileDrop = useCallback(paths => {
+        processSongs(paths);
+    }, [processSongs]);
 
     useFileDrop(handleFileDrop);
 
@@ -21,9 +16,5 @@ export function usePlayer() {
         await getCurrentWindow().close();
     };
 
-    return {
-        metadata,
-        fileName,
-        handleClose,
-    };
+    return { metadata, fileName, handleClose };
 }
