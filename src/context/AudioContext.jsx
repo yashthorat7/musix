@@ -13,61 +13,75 @@ export function AudioProvider({ children }) {
 
     const { metadata, extractMetadata } = useMetadata();
     const {
-        isPlaying, currentTime, duration, togglePlay, handleSeek,
-        handlePrevious, handleNext, loadAudio, setIsPlaying,
-        setCurrentTime, setDuration,
+        isPlaying,
+        currentTime,
+        duration,
+        togglePlay,
+        handleSeek,
+        handlePrevious,
+        handleNext,
+        loadAudio,
+        setIsPlaying,
+        setCurrentTime,
+        setDuration,
     } = useAudioPlayer(audioRef);
 
-    const loadFile = useCallback(async (path) => {
-        if (path && path.toLowerCase().endsWith('.mp3')) {
-            setAudioFile(path);
-            const meta = await extractMetadata(path);
-            await loadAudio(path);
+    const loadFile = useCallback(
+        async (path) => {
+            if (path && path.toLowerCase().endsWith('.mp3')) {
+                setAudioFile(path);
+                const meta = await extractMetadata(path);
+                await loadAudio(path);
 
-            setTimeout(() => {
-                if (audioRef.current) {
-                    audioRef.current.play().catch(error => 
-                        console.error('Error auto-playing file:', error)
-                    );
-                    setIsPlaying(true);
-                }
-            }, 300);
-            
-            return meta;
-        }
-    }, [extractMetadata, loadAudio, setIsPlaying]);
+                setTimeout(() => {
+                    if (audioRef.current) {
+                        audioRef.current
+                            .play()
+                            .catch((error) => console.error('Error auto-playing file:', error));
+                        setIsPlaying(true);
+                    }
+                }, 300);
 
-    const processSongs = useCallback(async (paths) => {
-        if (!paths || paths.length === 0) return;
-        if (typeof paths === 'string') paths = [paths];
-
-        const songsWithMetadata = [];
-        
-        for (let i = 0; i < paths.length; i++) {
-            const path = paths[i];
-            if (path.toLowerCase().endsWith('.mp3')) {
-                const metadata = await extractMetadata(path);
-                songsWithMetadata.push({
-                    path,
-                    metadata,
-                    fileName: path.split(/[/\\]/).pop(),
-                });
+                return meta;
             }
-        }
-        
-        if (songsWithMetadata.length > 0) {
-            const wasQueueEmpty = songQueue.getQueue().length === 0;
-            songQueue.appendSongs(songsWithMetadata);
-            setQueue(songQueue.getQueue());
-            
-            if (wasQueueEmpty || (!isPlaying && audioFile === '')) {
-                const currentSong = songQueue.getCurrentSong();
-                if (currentSong) {
-                    await loadFile(currentSong.path);
+        },
+        [extractMetadata, loadAudio, setIsPlaying],
+    );
+
+    const processSongs = useCallback(
+        async (paths) => {
+            if (!paths || paths.length === 0) return;
+            if (typeof paths === 'string') paths = [paths];
+
+            const songsWithMetadata = [];
+
+            for (let i = 0; i < paths.length; i++) {
+                const path = paths[i];
+                if (path.toLowerCase().endsWith('.mp3')) {
+                    const metadata = await extractMetadata(path);
+                    songsWithMetadata.push({
+                        path,
+                        metadata,
+                        fileName: path.split(/[/\\]/).pop(),
+                    });
                 }
             }
-        }
-    }, [extractMetadata, loadFile, isPlaying, audioFile]);
+
+            if (songsWithMetadata.length > 0) {
+                const wasQueueEmpty = songQueue.getQueue().length === 0;
+                songQueue.appendSongs(songsWithMetadata);
+                setQueue(songQueue.getQueue());
+
+                if (wasQueueEmpty || (!isPlaying && audioFile === '')) {
+                    const currentSong = songQueue.getCurrentSong();
+                    if (currentSong) {
+                        await loadFile(currentSong.path);
+                    }
+                }
+            }
+        },
+        [extractMetadata, loadFile, isPlaying, audioFile],
+    );
 
     useEffect(() => {
         const handleSongEnd = () => {
@@ -124,7 +138,7 @@ export function AudioProvider({ children }) {
         removeSong: (index) => {
             songQueue.removeSong(index);
             setQueue(songQueue.getQueue());
-        }
+        },
     };
 
     return (

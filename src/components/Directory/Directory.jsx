@@ -1,7 +1,24 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import styles from './Directory.module.css';
 
 function Directory({ isOpen, songs = [], onRemove, onClear, onShuffle }) {
+    const fileInputRef = useRef(null);
+
+    const handleAddClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileSelect = async (e) => {
+        const files = Array.from(e.target.files || [])
+            .filter((file) => file.name.toLowerCase().endsWith('.mp3'))
+            .map((file) => file.path);
+
+        if (files.length > 0) {
+            await processSongs(files);
+        }
+        e.target.value = '';
+    };
+
     return (
         <div className={`${styles.container} ${isOpen ? styles.open : ''}`}>
             <div className={styles.songList}>
@@ -13,12 +30,12 @@ function Directory({ isOpen, songs = [], onRemove, onClear, onShuffle }) {
                             <div className={styles.songTitle} title={song.fileName || song.path}>
                                 {song.fileName || song.path.split('/').pop()}
                             </div>
-                            <button 
+                            <button
                                 className={styles.removeButton}
                                 onClick={() => onRemove(index)}
                                 title="Remove from queue"
                             >
-                                −
+                                <img src="/icons/minus.svg" alt="" />
                             </button>
                         </div>
                     ))
@@ -33,12 +50,23 @@ function Directory({ isOpen, songs = [], onRemove, onClear, onShuffle }) {
                     >
                         <img src="/icons/random.svg" alt="" />
                     </button>
-                    <button className={styles.capsuleButton} onClick={onClear} title="Clear queue">
-                        <img src="/icons/add.svg" alt="Clear" />
+                    <button
+                        className={styles.capsuleButton}
+                        onClick={handleAddClick}
+                        title="Add songs"
+                    >
+                        <img src="/icons/add.svg" alt="Add" />
                     </button>
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".mp3"
+                        multiple
+                        onChange={handleFileSelect}
+                        style={{ display: 'none' }}
+                    />
                 </div>
             </div>
-            
         </div>
     );
 }

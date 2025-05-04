@@ -6,9 +6,12 @@ import { getCurrentWindow } from '@tauri-apps/api/window';
 export function usePlayer() {
     const { metadata, loadFile, fileName, processSongs } = useAudio();
 
-    const handleFileDrop = useCallback(paths => {
-        processSongs(paths);
-    }, [processSongs]);
+    const handleFileDrop = useCallback(
+        (paths) => {
+            processSongs(paths);
+        },
+        [processSongs],
+    );
 
     useFileDrop(handleFileDrop);
 

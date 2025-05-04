@@ -7,20 +7,23 @@ export function useAudioPlayer(audioRef) {
     const [duration, setDuration] = useState(0);
     const clickTimeoutRef = useRef(null);
 
-    const loadAudio = useCallback(async (path) => {
-        try {
-            const fileUrl = convertFileSrc(path);
-            if (audioRef.current) {
-                audioRef.current.src = fileUrl;
-                audioRef.current.load();
-                audioRef.current.onloadedmetadata = () => {
-                    setDuration(audioRef.current.duration);
-                };
+    const loadAudio = useCallback(
+        async (path) => {
+            try {
+                const fileUrl = convertFileSrc(path);
+                if (audioRef.current) {
+                    audioRef.current.src = fileUrl;
+                    audioRef.current.load();
+                    audioRef.current.onloadedmetadata = () => {
+                        setDuration(audioRef.current.duration);
+                    };
+                }
+            } catch (error) {
+                console.error('Error loading audio:', error);
             }
-        } catch (error) {
-            console.error('Error loading audio:', error);
-        }
-    }, [audioRef]);
+        },
+        [audioRef],
+    );
 
     const togglePlay = useCallback(() => {
         if (!audioRef.current) return;
@@ -35,19 +38,22 @@ export function useAudioPlayer(audioRef) {
         } else {
             const playPromise = audioRef.current.play();
             if (playPromise) {
-                playPromise.catch(error => console.error('Error playing audio:', error));
+                playPromise.catch((error) => console.error('Error playing audio:', error));
             }
         }
 
         setIsPlaying(!isPlaying);
     }, [isPlaying, audioRef]);
 
-    const handleSeek = useCallback((time) => {
-        if (audioRef.current) {
-            audioRef.current.currentTime = time;
-            setCurrentTime(time);
-        }
-    }, [audioRef]);
+    const handleSeek = useCallback(
+        (time) => {
+            if (audioRef.current) {
+                audioRef.current.currentTime = time;
+                setCurrentTime(time);
+            }
+        },
+        [audioRef],
+    );
 
     const handlePrevious = useCallback(() => {
         if (audioRef.current) {
@@ -83,8 +89,16 @@ export function useAudioPlayer(audioRef) {
     }, [audioRef, setCurrentTime, setIsPlaying]);
 
     return {
-        isPlaying, currentTime, duration, togglePlay,
-        handleSeek, handlePrevious, handleNext, loadAudio,
-        setIsPlaying, setCurrentTime, setDuration
+        isPlaying,
+        currentTime,
+        duration,
+        togglePlay,
+        handleSeek,
+        handlePrevious,
+        handleNext,
+        loadAudio,
+        setIsPlaying,
+        setCurrentTime,
+        setDuration,
     };
 }
