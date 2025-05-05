@@ -7,12 +7,12 @@ import Disc from './Disc';
 import Minimizer from '../Sidebar/Minimizer';
 import { usePlayer } from '../../hooks/usePlayer';
 
-function Player() {
+function Player({ onMinimize }) {
     const { metadata, fileName, handleClose } = usePlayer();
 
     return (
         <div className={styles.container}>
-            <Minimizer />
+            <Minimizer onMinimize={onMinimize} />
             <Title text={metadata?.title || fileName} />
             <Disc coverArt={metadata?.cover_art} />
             <Hand onClose={handleClose} />
