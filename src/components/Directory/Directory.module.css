@@ -99,13 +99,16 @@
 
 .songTitle {
     flex: 1;
-    font-size: 13px;
+    font-size: 12px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     color: #333;
     padding-right: 8px;
-    /* -webkit-app-region: no-drag; */
+}
+
+.songTitle:hover {
+    color: #ff5353;
 }
 
 .removeButton {
@@ -124,4 +127,14 @@
 .removeButton:hover {
     background: #e0e0e0;
     color: #333;
+}
+
+.currentSong {
+    background-color: #f0f0f0;
+    border-radius: 4px;
+}
+
+.currentSong .songTitle {
+    color: #ff5353;
+    font-weight: 500;
 }

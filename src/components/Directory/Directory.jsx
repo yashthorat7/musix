@@ -26,7 +26,10 @@ function Directory({ isOpen, songs = [], onRemove, onClear, onShuffle }) {
                     <div className={styles.emptyMessage}>No songs in queue</div>
                 ) : (
                     songs.map((song, index) => (
-                        <div key={`${song.path}-${index}`} className={styles.songItem}>
+                        <div
+                            key={`${song.path}-${index}`}
+                            className={`${styles.songItem} ${index === 0 ? styles.currentSong : ''}`}
+                        >
                             <div className={styles.songTitle} title={song.fileName || song.path}>
                                 {song.fileName || song.path.split('/').pop()}
                             </div>
