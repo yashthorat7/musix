@@ -13,6 +13,7 @@ export function useAudioPlayer(audioRef) {
                 const fileUrl = convertFileSrc(path);
                 if (audioRef.current) {
                     audioRef.current.src = fileUrl;
+                    audioRef.current.volume = 0.5; // Set initial volume
                     audioRef.current.load();
                     audioRef.current.onloadedmetadata = () => {
                         setDuration(audioRef.current.duration);
@@ -73,6 +74,7 @@ export function useAudioPlayer(audioRef) {
         const audio = audioRef.current;
         if (!audio) return;
 
+        audio.volume = 0.5;
         const updateTime = () => setCurrentTime(audio.currentTime);
         const handleEnded = () => {
             setIsPlaying(false);
