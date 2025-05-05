@@ -1,0 +1,36 @@
+.discWrapper {
+    position: absolute;
+    width: 75%;
+    height: 75%;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%;
+}
+
+.disc {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background-size: cover;
+    background-position: center;
+}
+
+.discInner {
+    position: absolute;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    background-color: rgba(0, 0, 0, 0.8);
+}
+
+.discCenter {
+    width: 4px;
+    height: 4px;
+    position: absolute;
+    border-radius: 50%;
+    background-color: #ffffff;
+    box-shadow: inset 0 0 6px #dbdef0;
+}
