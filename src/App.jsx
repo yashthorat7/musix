@@ -3,9 +3,10 @@ import Splash from './components/Splash/Splash';
 import Sidebar from './components/Sidebar/SideBar';
 import Directory from './components/Directory/Directory';
 import Equalizer from './components/Equalizer/Equalizer';
+import Miniview from './components/Miniview/Miniview';
 import './App.css';
 import { useSidebar } from './hooks/useSidebar';
-import { useState, useContext } from 'react';
+import { useState } from 'react';
 import { useAudio } from './context/AudioContext';
 
 function App() {
@@ -13,15 +14,19 @@ function App() {
     const [activePanel, setActivePanel] = useState(null);
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const { queue, removeSong, clearQueue, shuffleQueue } = useAudio();
+    const [isMiniview, setIsMiniview] = useState(false);
 
     const handleRemoveSong = (index) => {
         removeSong(index);
     };
 
+    const handleShowMiniview = () => setIsMiniview(true);
+    const handleRestoreMain = () => setIsMiniview(false);
+
     return (
         <main className="container" ref={containerRef}>
             <Splash>
-                <Player />
+                <Player onMinimize={handleShowMiniview} />
                 <Directory
                     isOpen={(isSidebarOpen || sidebarOpen) && activePanel === 'directory'}
                     songs={queue}
@@ -40,6 +45,7 @@ function App() {
                     activePanel={activePanel}
                     setSidebarOpen={setSidebarOpen}
                 />
+                {isMiniview && <Miniview onRestore={handleRestoreMain} />}
             </Splash>
         </main>
     );
