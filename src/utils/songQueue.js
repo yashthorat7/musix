@@ -1,42 +1,48 @@
 const songQueue = {
     songs: [],
     currentIndex: -1,
+    playedSongs: [],
 
     addSongs(songsArray) {
         console.log('Adding songs to queue:', songsArray);
         this.songs = [...songsArray];
         if (this.currentIndex === -1 && this.songs.length > 0) this.currentIndex = 0;
-        return this.songs;
+        return this.getVisibleSongs();
     },
 
     appendSongs(songsArray) {
         console.log('Appending songs to queue:', songsArray);
         this.songs = [...this.songs, ...songsArray];
         if (this.currentIndex === -1 && this.songs.length > 0) this.currentIndex = 0;
-        return this.songs;
+        return this.getVisibleSongs();
     },
 
     removeSong(index) {
         console.log('Removing song at index:', index);
         if (index < 0 || index >= this.songs.length) return false;
 
-        if (this.currentIndex > index) this.currentIndex--;
-        else if (this.currentIndex === index && index === this.songs.length - 1) {
-            this.currentIndex = this.songs.length > 1 ? 0 : -1;
+        const actualIndex = index + this.currentIndex;
+
+        if (actualIndex === this.currentIndex) {
+            this.songs.splice(actualIndex, 1);
+            if (this.songs.length === 0) {
+                this.currentIndex = -1;
+            }
+        } else {
+            this.songs.splice(actualIndex, 1);
         }
 
-        this.songs.splice(index, 1);
-        if (this.songs.length === 0) this.currentIndex = -1;
-
         console.log('Queue after removal:', this.songs, 'Current index:', this.currentIndex);
-        return true;
+        return this.getVisibleSongs();
     },
 
     clearQueue() {
         console.log('Clearing queue');
+        const currentSong = this.getCurrentSong();
+        this.playedSongs = currentSong ? [currentSong] : [];
         this.songs = [];
         this.currentIndex = -1;
-        return true;
+        return this.getVisibleSongs();
     },
 
     getCurrentSong() {
@@ -48,8 +54,12 @@ const songQueue = {
         return song;
     },
 
+    getVisibleSongs() {
+        return this.songs.slice(this.currentIndex);
+    },
+
     getQueue() {
-        return this.songs;
+        return this.getVisibleSongs();
     },
 
     nextSong() {
@@ -60,6 +70,11 @@ const songQueue = {
             return this.getCurrentSong();
         }
 
+        const currentSong = this.getCurrentSong();
+        if (currentSong) {
+            this.playedSongs.push(currentSong);
+        }
+
         this.currentIndex++;
         const song = this.songs[this.currentIndex];
         console.log('Next song index:', this.currentIndex, 'Song:', song);
@@ -67,34 +82,36 @@ const songQueue = {
     },
 
     previousSong() {
-        if (this.songs.length === 0) return null;
+        if (this.playedSongs.length === 0) {
+            if (this.currentIndex > 0) {
+                this.currentIndex = 0;
+            }
+            return this.getCurrentSong();
+        }
 
-        if (this.currentIndex <= 0) this.currentIndex = 0;
-        else this.currentIndex--;
+        const previousSong = this.playedSongs.pop();
+        this.songs.splice(this.currentIndex, 0, previousSong);
 
-        const song = this.songs[this.currentIndex];
-        console.log('Previous song index:', this.currentIndex, 'Song:', song);
-        return song;
+        console.log('Previous song index:', this.currentIndex, 'Song:', previousSong);
+        return previousSong;
     },
 
     shuffleQueue() {
         console.log('Shuffling queue');
-        if (this.songs.length <= 1) return this.songs;
+        if (this.songs.length <= 1) return this.getVisibleSongs();
 
         const currentSong = this.getCurrentSong();
+        const upcomingSongs = this.songs.slice(this.currentIndex + 1);
 
-        for (let i = this.songs.length - 1; i > 0; i--) {
+        for (let i = upcomingSongs.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
-            [this.songs[i], this.songs[j]] = [this.songs[j], this.songs[i]];
+            [upcomingSongs[i], upcomingSongs[j]] = [upcomingSongs[j], upcomingSongs[i]];
         }
 
-        if (currentSong) {
-            const newIndex = this.songs.findIndex((song) => song.path === currentSong.path);
-            this.currentIndex = newIndex !== -1 ? newIndex : 0;
-        }
+        this.songs = [...this.songs.slice(0, this.currentIndex + 1), ...upcomingSongs];
 
         console.log('Queue after shuffle:', this.songs);
-        return this.songs;
+        return this.getVisibleSongs();
     },
 };
 
