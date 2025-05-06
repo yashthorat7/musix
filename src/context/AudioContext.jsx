@@ -50,34 +50,42 @@ export function AudioProvider({ children }) {
 
     const processSongs = useCallback(
         async (paths) => {
-            if (!paths || paths.length === 0) return;
-            if (typeof paths === 'string') paths = [paths];
+            if (!paths || !Array.isArray(paths) || paths.length === 0) return;
 
             const songsWithMetadata = [];
 
-            for (let i = 0; i < paths.length; i++) {
-                const path = paths[i];
-                if (path.toLowerCase().endsWith('.mp3')) {
-                    const metadata = await extractMetadata(path);
-                    songsWithMetadata.push({
-                        path,
-                        metadata,
-                        fileName: path.split(/[/\\]/).pop(),
-                    });
-                }
-            }
-
-            if (songsWithMetadata.length > 0) {
-                const wasQueueEmpty = songQueue.getQueue().length === 0;
-                songQueue.appendSongs(songsWithMetadata);
-                setQueue(songQueue.getQueue());
-
-                if (wasQueueEmpty || (!isPlaying && audioFile === '')) {
-                    const currentSong = songQueue.getCurrentSong();
-                    if (currentSong) {
-                        await loadFile(currentSong.path);
+            try {
+                for (const path of paths) {
+                    if (typeof path === 'string' && path.toLowerCase().endsWith('.mp3')) {
+                        try {
+                            const metadata = await extractMetadata(path);
+                            if (metadata) {
+                                songsWithMetadata.push({
+                                    path,
+                                    metadata,
+                                    fileName: path.split(/[/\\]/).pop(),
+                                });
+                            }
+                        } catch (err) {
+                            console.error(`Error processing file ${path}:`, err);
+                        }
                     }
                 }
+
+                if (songsWithMetadata.length > 0) {
+                    const wasQueueEmpty = songQueue.getQueue().length === 0;
+                    songQueue.appendSongs(songsWithMetadata);
+                    setQueue(songQueue.getQueue());
+
+                    if (wasQueueEmpty || (!isPlaying && audioFile === '')) {
+                        const currentSong = songQueue.getCurrentSong();
+                        if (currentSong) {
+                            await loadFile(currentSong.path);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error processing songs:', error);
             }
         },
         [extractMetadata, loadFile, isPlaying, audioFile],

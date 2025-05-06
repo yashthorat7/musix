@@ -11,9 +11,33 @@ const songQueue = {
     },
 
     appendSongs(songsArray) {
-        console.log('Appending songs to queue:', songsArray);
-        this.songs = [...this.songs, ...songsArray];
-        if (this.currentIndex === -1 && this.songs.length > 0) this.currentIndex = 0;
+        if (!Array.isArray(songsArray) || songsArray.length === 0) {
+            console.warn('Invalid songs array provided to appendSongs');
+            return this.getVisibleSongs();
+        }
+
+        console.log('Appending songs to queue. Current queue:', this.songs);
+        console.log('New songs to append:', songsArray);
+
+        const newSongs = songsArray.filter(newSong => {
+            const isDuplicate = this.songs.some(existingSong => existingSong.path === newSong.path);
+            if (isDuplicate) {
+                console.log('Skipping duplicate song:', newSong.path);
+            }
+            return !isDuplicate;
+        });
+
+        if (newSongs.length > 0) {
+            console.log('Adding new songs to queue:', newSongs);
+            this.songs = [...this.songs, ...newSongs];
+            if (this.currentIndex === -1 && this.songs.length > 0) {
+                console.log('Setting initial currentIndex to 0');
+                this.currentIndex = 0;
+            }
+        }
+
+        console.log('Updated queue:', this.songs);
+        console.log('Current index:', this.currentIndex);
         return this.getVisibleSongs();
     },
 
