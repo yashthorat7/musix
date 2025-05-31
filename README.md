@@ -1,5 +1,9 @@
 # 🎵 Musix
 
+<p align="center">
+<img src="README-img.gif" alt="Musix Screenshot">
+</p>
+
 A lightweight desktop music player built with Tauri and React!  
 **Musix** provides a beautiful, minimalist interface for playing your music with advanced features.
 
