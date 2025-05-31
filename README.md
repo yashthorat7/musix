@@ -113,7 +113,7 @@ npm run tauri build
 
 ## ❤️ Developed By
 
-👨‍💻 **Your Name**  
+👨‍💻 **Yash Thorat**  
 Feel free to suggest improvements, or report issues!
 
 ⭐ Don't forget to **star** this repository if you find it useful!
