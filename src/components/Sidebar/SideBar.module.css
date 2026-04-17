@@ -6,7 +6,6 @@
     width: 64px;
     pointer-events: none; 
     z-index: 1000;
-    -webkit-app-region: no-drag;
 }
 
 .triggerZone {
@@ -145,6 +144,23 @@
 }
 
 .backButton:hover {
+    filter: saturate(1);
+}
+
+.githubNavButton {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    height: 22px;
+    width: 22px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    padding: 0;
+    filter: saturate(0);
+}
+
+.githubNavButton:hover {
     filter: saturate(1);
 }
 

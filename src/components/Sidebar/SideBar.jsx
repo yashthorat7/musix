@@ -111,6 +111,13 @@ function Sidebar({ isOpen, activePanel, onPanelChange, setSidebarOpen, setIsSide
                 >
                     <img src="/icons/back.svg" alt="Back" />
                 </button>
+                <button
+                    className={styles.githubNavButton}
+                    onClick={() => openUrl('https://github.com/yashthorat7')}
+                    title="GitHub"
+                >
+                    <img src="/icons/github.svg" alt="GitHub" />
+                </button>
             </div>
             <div 
                 className={`${styles.tray} ${isOpen ? styles.trayOpen : ''}`}
@@ -129,13 +136,7 @@ function Sidebar({ isOpen, activePanel, onPanelChange, setSidebarOpen, setIsSide
                 >
                     <img src="/icons/equalizer.svg" alt="Equalizer" />
                 </button>
-                <button
-                    className={styles.iconButton}
-                    onClick={() => openUrl('https://github.com/yashthorat7')}
-                    title="GitHub"
-                >
-                    <img src="/icons/github.svg" alt="GitHub" />
-                </button>
+
 
                 <div
                     className={styles.sliderContainer}
