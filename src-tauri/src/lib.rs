@@ -1,4 +1,5 @@
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
+use tauri::Manager;
+use tauri_plugin_positioner::{WindowExt, Position};
 use audiotags::Tag;
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use id3::TagLike;
@@ -20,10 +21,6 @@ pub struct MusicMetadata {
     cover_art: Option<String>,
 }
 
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
-}
 
 #[tauri::command]
 fn extract_metadata(filepath: &str) -> Result<MusicMetadata, String> {
@@ -195,15 +192,43 @@ fn get_file_url(filepath: &str) -> Result<String, String> {
     Ok(url)
 }
 
+#[tauri::command]
+fn reposition_window(window: tauri::Window) {
+    let _ = window.move_window(tauri_plugin_positioner::Position::BottomRight);
+    if let Ok(pos) = window.outer_position() {
+        let scale_factor = window.scale_factor().unwrap_or(1.0);
+        let offset = (20.0 * scale_factor) as i32;
+        let _ = window.set_position(tauri::PhysicalPosition::new(
+            pos.x - offset,
+            pos.y - offset,
+        ));
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_positioner::init())
         .plugin(tauri_plugin_opener::init())
+        .setup(|app| {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.move_window(Position::BottomRight);
+                
+                if let Ok(pos) = window.outer_position() {
+                    let scale_factor = window.scale_factor().unwrap_or(1.0);
+                    let offset = (20.0 * scale_factor) as i32;
+                    let _ = window.set_position(tauri::PhysicalPosition::new(
+                        pos.x - offset,
+                        pos.y - offset,
+                    ));
+                }
+            }
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
-            greet,
             extract_metadata,
-            get_file_url
+            get_file_url,
+            reposition_window
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

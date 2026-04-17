@@ -1,6 +1,6 @@
 import Player from './components/Player/Player';
 import Splash from './components/Splash/Splash';
-import Sidebar from './components/Sidebar/SideBar';
+import Sidebar from './components/Sidebar/Sidebar';
 import Directory from './components/Directory/Directory';
 import Equalizer from './components/Equalizer/Equalizer';
 import Miniview from './components/Miniview/Miniview';
@@ -10,7 +10,7 @@ import { useState } from 'react';
 import { useAudio } from './context/AudioContext';
 
 function App() {
-    const { isSidebarOpen, containerRef } = useSidebar();
+    const { isSidebarOpen, setIsSidebarOpen } = useSidebar();
     const [activePanel, setActivePanel] = useState(null);
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const { queue, removeSong, clearQueue, shuffleQueue } = useAudio();
@@ -24,7 +24,7 @@ function App() {
     const handleRestoreMain = () => setIsMiniview(false);
 
     return (
-        <main className="container" ref={containerRef}>
+        <main className="container">
             <Splash>
                 <Player onMinimize={handleShowMiniview} />
                 <Directory
@@ -44,6 +44,7 @@ function App() {
                     onPanelChange={setActivePanel}
                     activePanel={activePanel}
                     setSidebarOpen={setSidebarOpen}
+                    setIsSidebarOpen={setIsSidebarOpen}
                 />
                 {isMiniview && <Miniview onRestore={handleRestoreMain} />}
             </Splash>

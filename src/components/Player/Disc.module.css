@@ -8,7 +8,7 @@
     animation: pop 0.3s ease-out;
     margin-bottom: 10px;
     border-radius: 50%;
-    /* background: #7dff7179; */
+    
 }
 
 .disc {
@@ -20,11 +20,7 @@
     pointer-events: none;
     user-select: none;
     touch-action: none;
-    /* background:
-        radial-gradient(circle at top left, #8400ff, transparent 70%),
-        radial-gradient(circle at top right, #0026ff, transparent 70%),
-        radial-gradient(circle at bottom left, #ff000d, transparent 70%),
-        radial-gradient(circle at bottom right, #ff39e5, transparent 70%); */
+    
     background-size: cover;
     background-position: center;
     will-change: transform;

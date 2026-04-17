@@ -87,7 +87,7 @@
 
 .resetButton {
     position: absolute;
-    bottom: 5px;
+    bottom: 12px;
     left: 50%;
     transform: translateX(-50%);
     border-radius: 50%;

@@ -10,10 +10,9 @@ export function useMetadata() {
             setMetadata(metadata);
             return metadata;
         } catch (error) {
-            console.error('Error extracting metadata:', error);
             return null;
         }
     }, []);
 
-    return { metadata, extractMetadata };
+    return { metadata, extractMetadata, setMetadata };
 }

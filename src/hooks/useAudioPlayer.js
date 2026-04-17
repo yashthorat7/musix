@@ -39,7 +39,7 @@ export function useAudioPlayer(audioRef) {
         } else {
             const playPromise = audioRef.current.play();
             if (playPromise) {
-                playPromise.catch((error) => console.error('Error playing audio:', error));
+                playPromise.catch(() => {});
             }
         }
 
@@ -70,6 +70,16 @@ export function useAudioPlayer(audioRef) {
         }
     }, [audioRef, duration]);
 
+    const resetAudio = useCallback(() => {
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.src = '';
+            setIsPlaying(false);
+            setCurrentTime(0);
+            setDuration(0);
+        }
+    }, [audioRef]);
+
     useEffect(() => {
         const audio = audioRef.current;
         if (!audio) return;
@@ -99,6 +109,7 @@ export function useAudioPlayer(audioRef) {
         handlePrevious,
         handleNext,
         loadAudio,
+        resetAudio,
         setIsPlaying,
         setCurrentTime,
         setDuration,

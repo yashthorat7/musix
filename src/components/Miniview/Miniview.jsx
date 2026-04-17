@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { getCurrentWindow, LogicalSize } from '@tauri-apps/api/window';
+import { invoke } from '@tauri-apps/api/core';
 import styles from './Miniview.module.css';
 import MiniDisc from './MiniDisc';
 import MiniProgressBar from './MiniProgressBar';
@@ -16,6 +17,7 @@ function Miniview({ onRestore }) {
             try {
                 const win = getCurrentWindow();
                 await win.setSize(new LogicalSize(96, 96));
+                await invoke('reposition_window');
             } finally {
                 isSettingSize.current = false;
             }
@@ -28,6 +30,7 @@ function Miniview({ onRestore }) {
                 try {
                     const win = getCurrentWindow();
                     await win.setSize(new LogicalSize(256, 256));
+                    await invoke('reposition_window');
                 } finally {
                     isSettingSize.current = false;
                 }
@@ -42,6 +45,7 @@ function Miniview({ onRestore }) {
         try {
             const win = getCurrentWindow();
             await win.setSize(new LogicalSize(256, 256));
+            await invoke('reposition_window');
             if (onRestore) onRestore();
         } finally {
             isSettingSize.current = false;

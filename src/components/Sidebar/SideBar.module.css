@@ -3,10 +3,22 @@
     left: 0;
     top: 0;
     height: 256px;
-    width: 39px;
-    pointer-events: none;
+    width: 64px;
+    pointer-events: none; 
     z-index: 1000;
     -webkit-app-region: no-drag;
+}
+
+.triggerZone {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 70%;
+    margin-top: 36px;
+    width: 48px;
+    background: transparent;
+    pointer-events: auto; 
+    z-index: 100;
 }
 
 .tray {
@@ -28,6 +40,7 @@
     transition: transform 0.3s ease;
     pointer-events: auto;
     -webkit-app-region: no-drag;
+    background-color: #ffffff;
 }
 
 .trayOpen {
@@ -135,19 +148,3 @@
     filter: saturate(1);
 }
 
-.githubButton {
-    position: absolute;
-    bottom: 8px;
-    left: 8px;
-    height: 22px;
-    width: 22px;
-    border: none;
-    background: none;
-    cursor: pointer;
-    padding: 0;
-    filter: saturate(0);
-}
-
-.githubButton:hover {
-    filter: saturate(1);
-}

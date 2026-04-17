@@ -13,29 +13,12 @@ function Directory({ isOpen, songs = [], onRemove, onClear, onShuffle }) {
 
     const handleFileSelect = async (e) => {
         try {
-            console.log('Raw files:', e.target.files);
             const files = Array.from(e.target.files || [])
-                .filter(file => {
-                    console.log('Checking file:', {
-                        name: file.name,
-                        path: file.path,
-                        webkitRelativePath: file.webkitRelativePath
-                    });
-                    return file.name.toLowerCase().endsWith('.mp3');
-                })
-                .map(file => {
-                    const filePath = file.path || file.webkitRelativePath || file.name;
-                    console.log('Mapped file path:', filePath);
-                    return filePath;
-                });
-
-            console.log('Final filtered MP3 files:', files);
+                .filter(file => file.name.toLowerCase().endsWith('.mp3'))
+                .map(file => file.path || file.webkitRelativePath || file.name);
 
             if (files.length > 0) {
-                console.log('Sending files to processSongs:', files);
                 await processSongs(files);
-            } else {
-                console.log('No valid MP3 files found');
             }
         } catch (error) {
             console.error('Error selecting files:', error);

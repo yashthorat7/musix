@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
-import styles from './SideBar.module.css';
+import styles from './Sidebar.module.css';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import { useAudio } from '../../context/AudioContext';
 
-function SideBar({ isOpen, activePanel, onPanelChange, setSidebarOpen }) {
+function Sidebar({ isOpen, activePanel, onPanelChange, setSidebarOpen, setIsSidebarOpen }) {
     const [volume, setVolume] = useState(0.5);
     const [isDragging, setIsDragging] = useState(false);
     const sliderRef = useRef(null);
+    const closeTimeoutRef = useRef(null);
     const { audioRef } = useAudio();
 
     const updateVolume = (clientY) => {
@@ -39,6 +41,22 @@ function SideBar({ isOpen, activePanel, onPanelChange, setSidebarOpen }) {
         setIsDragging(false);
     };
 
+    const handleMouseEnter = () => {
+        if (closeTimeoutRef.current) {
+            clearTimeout(closeTimeoutRef.current);
+        }
+        setIsSidebarOpen(true);
+    };
+
+    const handleMouseLeave = () => {
+        if (closeTimeoutRef.current) {
+            clearTimeout(closeTimeoutRef.current);
+        }
+        closeTimeoutRef.current = setTimeout(() => {
+            setIsSidebarOpen(false);
+        }, 150);
+    };
+
     useEffect(() => {
         if (isDragging) {
             window.addEventListener('mousemove', handleMouseMove);
@@ -50,6 +68,9 @@ function SideBar({ isOpen, activePanel, onPanelChange, setSidebarOpen }) {
         return () => {
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('mouseup', handleMouseUp);
+            if (closeTimeoutRef.current) {
+                clearTimeout(closeTimeoutRef.current);
+            }
         };
     }, [isDragging]);
 
@@ -65,6 +86,11 @@ function SideBar({ isOpen, activePanel, onPanelChange, setSidebarOpen }) {
 
     return (
         <div className={styles.container}>
+            <div 
+                className={styles.triggerZone}
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+            />
             <div
                 className={styles.navigator}
                 style={{
@@ -73,6 +99,8 @@ function SideBar({ isOpen, activePanel, onPanelChange, setSidebarOpen }) {
                             ? 'flex'
                             : 'none',
                 }}
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
             >
                 <button
                     className={styles.backButton}
@@ -83,14 +111,12 @@ function SideBar({ isOpen, activePanel, onPanelChange, setSidebarOpen }) {
                 >
                     <img src="/icons/back.svg" alt="Back" />
                 </button>
-                <button
-                    className={styles.githubButton}
-                    onClick={() => window.open('https://github.com/yashthorat7', '_blank')}
-                >
-                    <img src="/icons/github.svg" alt="Github" />
-                </button>
             </div>
-            <div className={`${styles.tray} ${isOpen ? styles.trayOpen : ''}`}>
+            <div 
+                className={`${styles.tray} ${isOpen ? styles.trayOpen : ''}`}
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+            >
                 <button
                     className={`${styles.iconButton} ${activePanel === 'directory' ? styles.active : ''}`}
                     onClick={() => handlePanelClick('directory')}
@@ -102,6 +128,13 @@ function SideBar({ isOpen, activePanel, onPanelChange, setSidebarOpen }) {
                     onClick={() => handlePanelClick('equalizer')}
                 >
                     <img src="/icons/equalizer.svg" alt="Equalizer" />
+                </button>
+                <button
+                    className={styles.iconButton}
+                    onClick={() => openUrl('https://github.com/yashthorat7')}
+                    title="GitHub"
+                >
+                    <img src="/icons/github.svg" alt="GitHub" />
                 </button>
 
                 <div
@@ -120,4 +153,4 @@ function SideBar({ isOpen, activePanel, onPanelChange, setSidebarOpen }) {
     );
 }
 
-export default SideBar;
+export default Sidebar;

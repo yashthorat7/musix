@@ -11,7 +11,7 @@ export function AudioProvider({ children }) {
     const [queue, setQueue] = useState([]);
     const audioRef = useRef(null);
 
-    const { metadata, extractMetadata } = useMetadata();
+    const { metadata, extractMetadata, setMetadata } = useMetadata();
     const {
         isPlaying,
         currentTime,
@@ -21,6 +21,7 @@ export function AudioProvider({ children }) {
         handlePrevious,
         handleNext,
         loadAudio,
+        resetAudio,
         setIsPlaying,
         setCurrentTime,
         setDuration,
@@ -37,7 +38,7 @@ export function AudioProvider({ children }) {
                     if (audioRef.current) {
                         audioRef.current
                             .play()
-                            .catch((error) => console.error('Error auto-playing file:', error));
+                            .catch(() => {});
                         setIsPlaying(true);
                     }
                 }, 300);
@@ -67,7 +68,6 @@ export function AudioProvider({ children }) {
                                 });
                             }
                         } catch (err) {
-                            console.error(`Error processing file ${path}:`, err);
                         }
                     }
                 }
@@ -85,7 +85,6 @@ export function AudioProvider({ children }) {
                     }
                 }
             } catch (error) {
-                console.error('Error processing songs:', error);
             }
         },
         [extractMetadata, loadFile, isPlaying, audioFile],
@@ -138,14 +137,30 @@ export function AudioProvider({ children }) {
         clearQueue: () => {
             songQueue.clearQueue();
             setQueue(songQueue.getQueue());
+            resetAudio();
+            setAudioFile('');
+            setMetadata(null);
         },
         shuffleQueue: () => {
             songQueue.shuffleQueue();
             setQueue(songQueue.getQueue());
         },
         removeSong: (index) => {
+            const isRemovingCurrent = index === 0;
             songQueue.removeSong(index);
-            setQueue(songQueue.getQueue());
+            const newQueue = songQueue.getQueue();
+            setQueue(newQueue);
+
+            if (newQueue.length === 0) {
+                resetAudio();
+                setAudioFile('');
+                setMetadata(null);
+            } else if (isRemovingCurrent) {
+                const nextSong = songQueue.getCurrentSong();
+                if (nextSong) {
+                    loadFile(nextSong.path);
+                }
+            }
         },
     };
 
