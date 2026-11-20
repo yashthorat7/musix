@@ -1,120 +1,182 @@
 const songQueue = {
-    songs: [],
-    currentIndex: -1,
-    playedSongs: [],
+  songs: [],
+  currentIndex: -1,
+  playedSongs: [],
 
-    addSongs(songsArray) {
-        this.songs = [...songsArray];
-        if (this.currentIndex === -1 && this.songs.length > 0) this.currentIndex = 0;
-        return this.getVisibleSongs();
-    },
+  initializeQueue(songsArray = [], currentIndex = 0) {
+    if (!Array.isArray(songsArray)) {
+      this.songs = [];
+      this.currentIndex = -1;
+      this.playedSongs = [];
+      return this.getVisibleSongs();
+    }
 
-    appendSongs(songsArray) {
-        if (!Array.isArray(songsArray) || songsArray.length === 0) {
-            return this.getVisibleSongs();
-        }
+    this.songs = [...songsArray];
+    if (this.songs.length === 0) {
+      this.currentIndex = -1;
+    } else {
+      this.currentIndex = Math.max(
+        0,
+        Math.min(currentIndex, this.songs.length - 1),
+      );
+    }
+    this.playedSongs = [];
+    return this.getVisibleSongs();
+  },
 
-        const newSongs = songsArray.filter(newSong => {
-            return !this.songs.some(existingSong => existingSong.path === newSong.path);
-        });
+  addSongs(songsArray) {
+    this.songs = Array.isArray(songsArray) ? [...songsArray] : [];
+    if (this.currentIndex === -1 && this.songs.length > 0) {
+      this.currentIndex = 0;
+    }
+    return this.getVisibleSongs();
+  },
 
-        if (newSongs.length > 0) {
-            this.songs = [...this.songs, ...newSongs];
-            if (this.currentIndex === -1 && this.songs.length > 0) {
-                this.currentIndex = 0;
-            }
-        }
+  appendSongs(songsArray) {
+    if (!Array.isArray(songsArray) || songsArray.length === 0) {
+      return this.getVisibleSongs();
+    }
 
-        return this.getVisibleSongs();
-    },
+    const newSongs = songsArray.filter(
+      (newSong) =>
+        !this.songs.some((existingSong) => existingSong.path === newSong.path),
+    );
 
-    removeSong(index) {
-        if (index < 0 || index >= this.songs.length) return false;
+    if (newSongs.length > 0) {
+      this.songs = [...this.songs, ...newSongs];
+      if (this.currentIndex === -1 && this.songs.length > 0) {
+        this.currentIndex = 0;
+      }
+    }
 
-        const actualIndex = index + this.currentIndex;
+    return this.getVisibleSongs();
+  },
 
-        if (actualIndex === this.currentIndex) {
-            this.songs.splice(actualIndex, 1);
-            if (this.songs.length === 0) {
-                this.currentIndex = -1;
-            }
-        } else {
-            this.songs.splice(actualIndex, 1);
-        }
+  removeSong(index) {
+    if (index < 0 || index >= this.getVisibleSongs().length)
+      return this.getVisibleSongs();
 
-        return this.getVisibleSongs();
-    },
-
-    clearQueue() {
-        const currentSong = this.getCurrentSong();
-        this.playedSongs = currentSong ? [currentSong] : [];
-        this.songs = [];
+    const actualIndex = index + this.currentIndex;
+    if (actualIndex >= 0 && actualIndex < this.songs.length) {
+      this.songs.splice(actualIndex, 1);
+      if (this.songs.length === 0) {
         this.currentIndex = -1;
-        return this.getVisibleSongs();
-    },
+      } else if (this.currentIndex >= this.songs.length) {
+        this.currentIndex = this.songs.length - 1;
+      }
+    }
 
-    getCurrentSong() {
-        const song =
-            this.currentIndex >= 0 && this.currentIndex < this.songs.length
-                ? this.songs[this.currentIndex]
-                : null;
-        return song;
-    },
+    return this.getVisibleSongs();
+  },
 
-    getVisibleSongs() {
-        return this.songs.slice(this.currentIndex);
-    },
+  clearQueue() {
+    this.songs = [];
+    this.currentIndex = -1;
+    this.playedSongs = [];
+    return [];
+  },
 
-    getQueue() {
-        return this.getVisibleSongs();
-    },
+  getCurrentSong() {
+    if (this.currentIndex >= 0 && this.currentIndex < this.songs.length) {
+      return this.songs[this.currentIndex];
+    }
+    return null;
+  },
 
-    nextSong() {
-        if (this.songs.length === 0) return null;
+  getCurrentIndex() {
+    return this.currentIndex;
+  },
 
-        if (this.currentIndex >= this.songs.length - 1) {
-            return this.getCurrentSong();
-        }
+  setCurrentIndex(index) {
+    if (index >= 0 && index < this.songs.length) {
+      this.currentIndex = index;
+    }
+  },
 
-        const currentSong = this.getCurrentSong();
-        if (currentSong) {
-            this.playedSongs.push(currentSong);
-        }
+  getAllSongs() {
+    return [...this.songs];
+  },
 
-        this.currentIndex++;
-        const song = this.songs[this.currentIndex];
-        return song;
-    },
+  updateSongMetadata(path, metadataUpdate) {
+    if (!path || !metadataUpdate) return false;
+    let updated = false;
+    this.songs = this.songs.map((song) => {
+      if (song.path === path) {
+        updated = true;
+        return {
+          ...song,
+          metadata: {
+            ...(song.metadata || {}),
+            ...metadataUpdate,
+          },
+        };
+      }
+      return song;
+    });
+    return updated;
+  },
 
-    previousSong() {
-        if (this.playedSongs.length === 0) {
-            if (this.currentIndex > 0) {
-                this.currentIndex = 0;
-            }
-            return this.getCurrentSong();
-        }
+  getVisibleSongs() {
+    if (this.currentIndex < 0 || this.currentIndex >= this.songs.length) {
+      return [];
+    }
+    return this.songs.slice(this.currentIndex);
+  },
 
-        const previousSong = this.playedSongs.pop();
-        this.songs.splice(this.currentIndex, 0, previousSong);
+  getQueue() {
+    return this.getVisibleSongs();
+  },
 
-        return previousSong;
-    },
+  nextSong() {
+    if (this.songs.length === 0) return null;
 
-    shuffleQueue() {
-        if (this.songs.length <= 1) return this.getVisibleSongs();
+    if (this.currentIndex >= this.songs.length - 1) {
+      return this.getCurrentSong();
+    }
 
-        const currentSong = this.getCurrentSong();
-        const upcomingSongs = this.songs.slice(this.currentIndex + 1);
+    const currentSong = this.getCurrentSong();
+    if (currentSong) {
+      this.playedSongs.push(currentSong);
+    }
 
-        for (let i = upcomingSongs.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [upcomingSongs[i], upcomingSongs[j]] = [upcomingSongs[j], upcomingSongs[i]];
-        }
+    this.currentIndex++;
+    return this.getCurrentSong();
+  },
 
-        this.songs = [...this.songs.slice(0, this.currentIndex + 1), ...upcomingSongs];
+  previousSong() {
+    if (this.playedSongs.length > 0) {
+      const previousSong = this.playedSongs.pop();
+      this.songs.splice(this.currentIndex, 0, previousSong);
+      return previousSong;
+    }
 
-        return this.getVisibleSongs();
-    },
+    if (this.currentIndex > 0) {
+      this.currentIndex--;
+      return this.getCurrentSong();
+    }
+
+    return this.getCurrentSong();
+  },
+
+  shuffleQueue() {
+    if (this.songs.length <= 1) return this.getVisibleSongs();
+
+    const upcomingSongs = this.songs.slice(this.currentIndex + 1);
+
+    for (let i = upcomingSongs.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [upcomingSongs[i], upcomingSongs[j]] = [
+        upcomingSongs[j],
+        upcomingSongs[i],
+      ];
+    }
+
+    this.songs = [
+      ...this.songs.slice(0, this.currentIndex + 1),
+      ...upcomingSongs,
+    ];
+    return this.getVisibleSongs();
+  },
 };
 
 export default songQueue;

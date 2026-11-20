@@ -1,26 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import styles from './Splash.module.css';
+import React, { useState, useEffect } from "react";
+import styles from "./Splash.module.css";
 
 function Splash({ children }) {
-    const [isSplash, setIsSplash] = useState(true);
+  const [isSplash, setIsSplash] = useState(true);
 
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setIsSplash(false);
-        }, 3000);
-        return () => clearTimeout(timer);
-    }, []);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsSplash(false);
+    }, 1800);
+    return () => clearTimeout(timer);
+  }, []);
 
-    if (isSplash) {
-        return (
-            <div className={styles.container}>
-                <img src="/images/logo.png" alt="Logo" className={styles.logo} />
-                <p className={styles.credit}>YASH THORAT</p>
-            </div>
-        );
-    }
+  if (isSplash) {
+    return (
+      <div
+        className={styles.container}
+        onClick={() => setIsSplash(false)}
+        style={{ cursor: "pointer" }}
+      >
+        <img src="/images/logo.png" alt="Logo" className={styles.logo} />
+        <p className={styles.credit}>YASH THORAT</p>
+      </div>
+    );
+  }
 
-    return children;
+  return children;
 }
 
 export default Splash;

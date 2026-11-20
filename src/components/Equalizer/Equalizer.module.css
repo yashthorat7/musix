@@ -1,108 +1,108 @@
 .container {
-    position: absolute;
-    right: 0;
-    top: 0;
-    width: 215px;
-    height: 256px;
-    background: #edeef2;
-    transition: transform 0.3s ease;
-    overflow: hidden;
-    display: none;
-    z-index: 50;
-    flex-direction: column;
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 217px;
+  height: 256px;
+  background: #edeef2;
+  transition: transform 0.3s ease;
+  overflow: hidden;
+  display: none;
+  z-index: 50;
+  flex-direction: column;
 }
 
 .open {
-    display: flex;
+  display: flex;
 }
 
 .equalizer {
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    height: 100%;
-    padding: 20px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  height: 100%;
+  padding: 16px 12px 36px 12px;
 }
 
 .sliderGroup {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-    height: 100%;
-    -webkit-app-region: no-drag;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  height: 100%;
+  -webkit-app-region: no-drag;
 }
 
 .sliderContainer {
-    margin-top: 2px;
-    height: 150px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    -webkit-app-region: no-drag;
-    padding: 0 10px;
-    cursor: pointer;
+  margin-top: 2px;
+  height: 140px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  -webkit-app-region: no-drag;
+  padding: 0 10px;
+  cursor: pointer;
 }
 
 .slider {
-    width: 6px;
-    height: 160px;
-    background: #ffffff;
-    border-radius: 3px;
-    position: relative;
-    box-shadow: inset 0 1px 4px rgba(0, 5, 49, 0.4);
-    cursor: pointer;
-    transition: width 0.2s ease;
+  width: 6px;
+  height: 140px;
+  background: #ffffff;
+  border-radius: 3px;
+  position: relative;
+  box-shadow: inset 0 1px 4px rgba(0, 5, 49, 0.4);
+  cursor: pointer;
+  transition: width 0.2s ease;
 }
 
-
 .sliderFill {
-    width: 100%;
-    background: #cecece;
-    border-radius: 3px;
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    transition: height 0.1s ease-out;
+  width: 100%;
+  background: #cecece;
+  border-radius: 3px;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  transition: height 0.1s ease-out;
 }
 
 .sliderHandle {
-    width: 20px;
-    height: 28px;
-    background: #ffffff;
-    box-shadow: 0 1px 4px #00053166;
-    border-radius: 3px;
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%) translateY(-50%);
-    cursor: pointer;
-    transition: all 0.2s ease;
+  width: 20px;
+  height: 28px;
+  background: #ffffff;
+  box-shadow: 0 1px 4px #00053166;
+  border-radius: 3px;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%) translateY(-50%);
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .sliderLabel {
-    color: #666;
-    font-size: 12px;
-    margin-top: 8px;
+  color: #666;
+  font-size: 12px;
+  margin-top: 8px;
 }
 
 .resetButton {
-    position: absolute;
-    bottom: 12px;
-    left: 50%;
-    transform: translateX(-50%);
-    border-radius: 50%;
-    background: white;
-    box-shadow: 0 2px 4px #241ba32c;
-    border: none;
-    cursor: pointer;
-    padding: 3px 6px;
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 2px 4px #241ba32c;
+  border: none;
+  cursor: pointer;
+  padding: 3px 6px;
+  -webkit-app-region: no-drag;
 }
 
 .resetButton img {
-    margin-top: 2px;
-    opacity: 0.9;
+  margin-top: 2px;
+  opacity: 0.9;
 }
 
 .resetButton:hover img {
-    opacity: 1;
+  opacity: 1;
 }

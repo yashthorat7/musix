@@ -1,23 +1,29 @@
-import { useCallback, useEffect } from 'react';
-import { useAudio } from '../context/AudioContext';
-import { useFileDrop } from './useFileDrop';
-import { getCurrentWindow } from '@tauri-apps/api/window';
+import { useCallback } from "react";
+import { useAudio } from "../context/AudioContext";
+import { useFileDrop } from "./useFileDrop";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 
 export function usePlayer() {
-    const { metadata, loadFile, fileName, processSongs } = useAudio();
+  const { metadata, fileName, displayTitle, processSongs } = useAudio();
 
-    const handleFileDrop = useCallback(
-        (paths) => {
-            processSongs(paths);
-        },
-        [processSongs],
-    );
+  const handleFileDrop = useCallback(
+    (paths) => {
+      processSongs(paths);
+    },
+    [processSongs],
+  );
 
-    useFileDrop(handleFileDrop);
+  useFileDrop(handleFileDrop);
 
-    const handleClose = async () => {
-        await getCurrentWindow().close();
-    };
+  const handleClose = async () => {
+    try {
+      const win = getCurrentWindow();
 
-    return { metadata, fileName, handleClose };
+      await win.hide();
+    } catch (e) {
+      await getCurrentWindow().close();
+    }
+  };
+
+  return { metadata, fileName, displayTitle, handleClose };
 }

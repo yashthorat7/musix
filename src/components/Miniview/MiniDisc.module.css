@@ -1,36 +1,56 @@
 .discWrapper {
-    position: absolute;
-    width: 75%;
-    height: 75%;
-    position: relative;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border-radius: 50%;
+  position: relative;
+  width: 68px;
+  height: 68px;
+  min-width: 68px;
+  min-height: 68px;
+  max-width: 68px;
+  max-height: 68px;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 50%;
+  box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .disc {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    background-size: cover;
-    background-position: center;
+  position: absolute;
+  width: 68px;
+  height: 68px;
+  min-width: 68px;
+  min-height: 68px;
+  max-width: 68px;
+  max-height: 68px;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  box-sizing: border-box;
 }
 
 .discInner {
-    position: absolute;
-    border-radius: 50%;
-    width: 32px;
-    height: 32px;
-    background-color: rgba(0, 0, 0, 0.8);
+  position: absolute;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  aspect-ratio: 1 / 1;
+  background-color: rgba(0, 0, 0, 0.8);
+  box-sizing: border-box;
 }
 
 .discCenter {
-    width: 4px;
-    height: 4px;
-    position: absolute;
-    border-radius: 50%;
-    background-color: #ffffff;
-    box-shadow: inset 0 0 6px #dbdef0;
+  width: 4px;
+  height: 4px;
+  min-width: 4px;
+  min-height: 4px;
+  aspect-ratio: 1 / 1;
+  position: absolute;
+  border-radius: 50%;
+  background-color: #ffffff;
+  box-shadow: inset 0 0 6px #dbdef0;
+  box-sizing: border-box;
 }

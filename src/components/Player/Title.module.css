@@ -1,38 +1,41 @@
 .title {
-    width: 171px;
-    overflow: hidden;
-    white-space: nowrap;
-    position: absolute;
-    top: 6px;
+  width: 160px;
+  overflow: hidden;
+  white-space: nowrap;
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  -webkit-app-region: drag;
 }
 
 .marquee {
-    overflow: hidden;
-    white-space: nowrap;
-    position: relative;
+  overflow: hidden;
+  white-space: nowrap;
+  position: relative;
 }
 
 .track {
-    display: inline-block;
-    white-space: nowrap;
-    animation-name: scrollLoop;
-    animation-timing-function: linear;
-    animation-iteration-count: infinite;
-    transform: translateZ(0);
+  display: inline-block;
+  white-space: nowrap;
+  animation-name: scrollLoop;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  transform: translateZ(0);
 }
 
 .track span {
-    display: inline-block;
-    padding-right: 2rem;
-    color: #f97979;
-    font-size: 13px;
+  display: inline-block;
+  padding-right: 2rem;
+  color: #f97979;
+  font-size: 13px;
 }
 
 @keyframes scrollLoop {
-    0% {
-        transform: translateX(0%);
-    }
-    100% {
-        transform: translateX(-50%);
-    }
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
 }

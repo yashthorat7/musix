@@ -1,12 +1,17 @@
-import React from 'react';
-import styles from './Minimizer.module.css';
+import React from "react";
+import styles from "./Minimizer.module.css";
 
 function Minimizer({ onMinimize }) {
-    return (
-        <button className={styles.container} onClick={onMinimize}>
-            <img src="icons/minimizer.svg" alt="Minimize" />
-        </button>
-    );
+  const handleClick = (e) => {
+    e.stopPropagation();
+    if (onMinimize) onMinimize();
+  };
+
+  return (
+    <button className={styles.container} onClick={handleClick} type="button">
+      <img src="icons/minimizer.svg" alt="" />
+    </button>
+  );
 }
 
 export default Minimizer;

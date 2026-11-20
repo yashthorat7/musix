@@ -1,119 +1,187 @@
 # 🎵 Musix
 
 <p align="center">
-<img src="README-img.gif" alt="Musix Screenshot">
+  <img src="README-img.gif" alt="Musix Demo" width="340" />
 </p>
 
-A lightweight desktop music player built with Tauri and React!  
-**Musix** provides a beautiful, minimalist interface for playing your music with advanced features.
+<p align="center">
+  <strong>A modern, lightweight vinyl-aesthetic desktop music player built with Tauri 2 & React.</strong>
+</p>
 
-## ✨ Features
-
-- 🎧 **Elegant Music Player**: Play your favorite music with a sleek, modern interface.
-- 📂 **Music Library Management**: Organize and browse your music collection with ease.
-- 🎚️ **Built-in Equalizer**: Customize your sound with the integrated equalizer.
-- 🔄 **Queue Management**: Create, shuffle, and manage your playback queue.
-- 🎯 **Miniview Mode**: Compact floating player that stays out of your way.
-
-## 📂 Directory Structure
-
-```
-🌟 Musix/
-├── 📦 public/                     # Public assets
-│
-├── 🧩 src/                        # React frontend source
-│   ├── components/                # UI components
-│   │   ├── Player/                # Music player components
-│   │   ├── Splash/                # App splash screen
-│   │   ├── Sidebar/               # Navigation sidebar
-│   │   ├── Directory/             # Music directory browser
-│   │   ├── Equalizer/             # Audio equalizer
-│   │   └── Miniview/              # Minimized player view
-│   │
-│   ├── context/                   # React context providers
-│   ├── hooks/                     # Custom React hooks
-│   ├── utils/                     # Utility functions
-│   ├── App.jsx                    # Main application component
-│   ├── App.css                    # Application styles
-│   ├── main.jsx                   # Entry point
-│   └── index.css                  # Global styles
-│
-├── 🦀 src-tauri/                  # Tauri backend
-│   ├── src/                       # Rust source code
-│   ├── Cargo.toml                 # Rust dependencies
-│   └── tauri.conf.json            # Tauri configuration
-│
-├── README.md                      # Project documentation
-├── package.json                   # JavaScript dependencies
-├── vite.config.js                 # Vite configuration
-└── index.html                     # HTML entry point
-```
+<p align="center">
+  <a href="#-features">Features</a> •
+  <a href="#-windows-global-shortcuts">Shortcuts</a> •
+  <a href="#-installation--setup">Setup & Installation</a> •
+  <a href="#-building-the-installer">Installer</a> •
+  <a href="#-architecture">Architecture</a>
+</p>
 
 ---
 
-## 📄 Getting Started
+## ✨ Features
 
-Follow these steps to set up Musix on your system:
+- 🎧 **Vinyl Disc Aesthetic**: Rotating disc animation, sleek tone arm, minimalist player controls, and dynamic palette generation.
+- 🧠 **Persistent Memory**:
+  - Automatically remembers your **queue & playlist** across launches.
+  - Restores your **currently playing song** and exact **seek timestamp**.
+  - Persists your customized **volume level** and **audio equalizer levels**.
+- ⌨️ **Windows Global Shortcut (`Ctrl+Alt+M`)**:
+  - Summon, focus, or toggle the music player from anywhere in Windows — even while inside full-screen games, code editors, or browser tabs.
+  - Full hardware **Media Key support** (`Play/Pause`, `Next Track`, `Previous Track`).
+- 🎛️ **Real Web Audio Equalizer**:
+  - Live 4-band equalizer powered by Web Audio API BiquadFilterNodes:
+    - **Bass** (100 Hz LowShelf, ±12 dB)
+    - **Mids** (1 kHz Peaking, ±12 dB)
+    - **Treble** (3.5 kHz Peaking, ±12 dB)
+    - **Air** (10 kHz HighShelf, ±12 dB)
+  - Instant reset button to quickly return to flat neutral (0 dB) sound profile.
+- 🎵 **Multi-Format Audio Support**:
+  - Plays `.mp3`, `.wav`, `.flac`, `.ogg`, `.m4a`, `.aac`, `.opus`, and `.wma`.
+  - Automatic ID3v2 and native audio tag metadata parser with embedded album artwork extraction.
+- 🪟 **System Tray Companion**:
+  - Lives in your Windows system tray.
+  - Left-click tray icon to instantly toggle/summon the player.
+  - Right-click tray menu for quick Play/Pause, Track Skip, and Exit.
+- 📂 **Interactive Queue & Directory**:
+  - Drag and drop single or multiple audio files.
+  - Click any track directly in the playlist to jump to it.
+  - Shuffle and remove tracks with immediate queue recalculation.
+- 🎯 **Miniview & Floating Window Experience**:
+  - Shrink the player into an ultra-compact 96x96 px floating vinyl widget.
+  - Smooth hardware-accelerated window dragging (`startDragging`) anywhere on the desktop.
+  - Dual minimize controls: minimize to Windows Taskbar (`-`) or shrink to compact Miniview (`⤓`).
+  - Click to maximize/restore from Miniview back to full player (256x256 px).
+  - Double-click the marquee title bar to toggle Miniview / Fullview.
+  - Spot-on spawn positioning above the Windows Taskbar with position memory across restarts.
+
+---
+
+## ⌨️ Windows Global & In-App Shortcuts
+
+| Scope      | Shortcut             | Action                                                     |
+| :--------- | :------------------- | :--------------------------------------------------------- |
+| **Global** | `Ctrl + Alt + M`     | **Summon / Focus / Toggle Musix** from anywhere in Windows |
+| **Global** | `MediaPlayPause`     | Play / Pause current track                                 |
+| **Global** | `MediaTrackNext`     | Skip to next track                                         |
+| **Global** | `MediaTrackPrevious` | Return to previous track                                   |
+| **In-App** | `Space`              | Play / Pause                                               |
+| **In-App** | `←` / `→`            | Seek backward / forward 5 seconds                          |
+| **In-App** | `↑` / `↓`            | Volume up / down (5% increments)                           |
+| **In-App** | `M`                  | Mute / Unmute                                              |
+| **In-App** | `N`                  | Next track in queue                                        |
+| **In-App** | `P`                  | Previous track                                             |
+| **In-App** | `D`                  | Open / Close Queue Directory                               |
+| **In-App** | `E`                  | Open / Close Equalizer                                     |
+
+---
+
+## 🛠️ Installation & Setup
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) (v18 or higher)
+- [Rust](https://www.rust-lang.org/tools/install) (latest stable)
+- WebView2 (pre-installed on Windows 10/11)
 
 ### 1️⃣ Clone the Repository
 
-Clone or pull the latest version of the code:
 ```bash
 git clone https://github.com/yashthorat7/musix.git
+cd musix
 ```
 
 ### 2️⃣ Install Dependencies
 
-Install the necessary JavaScript packages:
 ```bash
 npm install
 ```
 
-### 3️⃣ Install Rust and Tauri
+### 3️⃣ Run in Development Mode
 
-Make sure you have Rust installed for the Tauri backend:
-```bash
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-```
-
-## 🛠️ How to Run
-
-### For Development
-
-Run the development server:
 ```bash
 npm run tauri dev
 ```
 
-### For Building
+---
 
-Build the application:
+## 📦 Building the Windows Installer
+
+Musix produces a production-grade **NSIS installer (`.exe`)** with Start Menu & Desktop shortcuts, uninstaller, and Windows audio file associations:
+
+### Option A: One-Click Script (Recommended)
+
+Simply double-click or run:
+
 ```bash
-npm run tauri build
+scripts\build-installer.bat
+```
+
+### Option B: Using npm
+
+```bash
+# 1. Build production NSIS installer
+npm run build:installer
+
+# 2. Register Windows shortcut key (Ctrl+Alt+M)
+npm run setup:shortcut
+```
+
+The completed installer will be output to:
+
+```
+installer/musix_0.1.0_x64-setup.exe
+```
+
+(or `src-tauri/target/release/bundle/nsis/musix_0.1.0_x64-setup.exe`)
+
+When installed, Windows will register Musix in the Start Menu, create a Desktop shortcut with the `Ctrl+Alt+M` hotkey, and associate audio files with Musix.
+
+---
+
+## 📂 Project Structure
+
+```
+🌟 Musix/
+├── 🧩 src/
+│   ├── components/
+│   │   ├── Player/            # Vinyl disc, tone arm, progress bar, controller
+│   │   ├── Directory/         # Queue browser & track selector
+│   │   ├── Equalizer/         # Web Audio API 4-band EQ & presets
+│   │   ├── Miniview/          # Compact 96x96 floating player
+│   │   ├── Sidebar/           # Sliding tray, volume slider, navigation
+│   │   └── Splash/            # Startup splash screen
+│   ├── context/
+│   │   └── AudioContext.jsx   # Master state, event listeners & keyboard dispatcher
+│   ├── hooks/
+│   │   ├── useAudioPlayer.js       # Playback controls & throttled progress persistence
+│   │   ├── useWebAudioEqualizer.js # Web Audio API BiquadFilterNodes
+│   │   ├── useFileDrop.js          # Multi-format drag & drop
+│   │   └── useMetadata.js          # Metadata invoke bridge
+│   ├── utils/
+│   │   ├── storage.js         # Persistent localStorage memory manager
+│   │   ├── songQueue.js       # State machine queue manager
+│   │   └── audioFormats.js    # Audio extension filters & title sanitizers
+│   └── App.jsx
+│
+├── 🦀 src-tauri/
+│   ├── src/
+│   │   ├── lib.rs             # Tray icon, global shortcuts, metadata extractor
+│   │   └── main.rs            # Entry point
+│   ├── Cargo.toml             # Symphonia, audiotags, tauri plugins
+│   └── tauri.conf.json        # Window specs, NSIS installer, file associations
+│
+├── 📜 scripts/
+│   ├── build-installer.bat    # Automated one-click installer builder
+│   └── create-shortcut.ps1    # Configures Windows hotkey (Ctrl+Alt+M) on .lnk
+└── README.md
 ```
 
 ---
 
-## 🎮 Application Features
+## ❤️ Credits & Author
 
-- 💿 **Music Playback**: Plays various audio formats with high-quality sound.
-- 🎚 **Equalizer**: Fine-tune your listening experience with preset or custom EQ settings.
-- 🔍 **Music Browser**: Find and organize your music files easily.
-- 🖱️ **Drag & Drop**: Simply drag your music files into the player.
-- 🖼️ **Always-on-Top Mode**: Keep the player visible while you work on other tasks.
-- 📱 **Compact Design**: Small footprint with minimal memory usage.
+👨‍💻 **Yash Thorat**
 
-## 📋 Requirements
+- GitHub: [@yashthorat7](https://github.com/yashthorat7)
 
-- 🖥️ **OS**: Windows, macOS, or Linux
-- 🧰 **Build Requirements**: 
-  - Node.js (version 16 or higher)
-  - Rust (edition 2021 or newer)
-  - System dependencies required by Tauri
-
-## ❤️ Developed By
-
-👨‍💻 **Yash Thorat**  
-Feel free to suggest improvements, or report issues!
-
-⭐ Don't forget to **star** this repository if you find it useful!
+⭐ If you enjoy Musix, don't forget to **star** the repository!
