@@ -12,6 +12,7 @@ use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent}
 use tauri::{Emitter, Manager};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 use tauri_plugin_positioner::{Position, WindowExt};
+use tauri_plugin_autostart::MacosLauncher;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct MusicMetadata {
@@ -368,6 +369,10 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_positioner::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_autostart::init(
+            MacosLauncher::LaunchAgent,
+            Some(vec!["--autostart"]),
+        ))
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(|app, shortcut, event| {
@@ -390,17 +395,21 @@ pub fn run() {
                 .build(),
         )
         .setup(|app| {
-
+            let is_autostart = std::env::args().any(|arg| arg == "--autostart");
             if let Some(window) = app.get_webview_window("main") {
-                let _ = window.move_window(Position::BottomRight);
+                if is_autostart {
+                    let _ = window.hide();
+                } else {
+                    let _ = window.move_window(Position::BottomRight);
 
-                if let Ok(pos) = window.outer_position() {
-                    let scale_factor = window.scale_factor().unwrap_or(1.0);
-                    let offset = (24.0 * scale_factor) as i32;
-                    let _ = window.set_position(tauri::PhysicalPosition::new(
-                        pos.x - offset,
-                        pos.y - offset,
-                    ));
+                    if let Ok(pos) = window.outer_position() {
+                        let scale_factor = window.scale_factor().unwrap_or(1.0);
+                        let offset = (24.0 * scale_factor) as i32;
+                        let _ = window.set_position(tauri::PhysicalPosition::new(
+                            pos.x - offset,
+                            pos.y - offset,
+                        ));
+                    }
                 }
             }
 

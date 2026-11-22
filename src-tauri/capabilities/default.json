@@ -18,6 +18,7 @@
     "core:window:allow-is-focused",
     "core:window:allow-is-minimized",
     "core:webview:allow-webview-close",
-    "core:window:allow-close"
+    "core:window:allow-close",
+    "autostart:default"
   ]
 }

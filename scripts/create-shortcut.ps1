@@ -49,4 +49,8 @@ $StartShortcut.Hotkey = "CTRL+ALT+M"
 $StartShortcut.Save()
 
 Write-Host "Start Menu shortcut created: $StartMenuShortcutPath" -ForegroundColor Green
+
+Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "Musix" -Value "`"$TargetExe`" --autostart" -Force
+Write-Host "Windows Startup registered: $TargetExe --autostart" -ForegroundColor Green
+
 Write-Host "Setup complete: CTRL+ALT+M assigned." -ForegroundColor Magenta
