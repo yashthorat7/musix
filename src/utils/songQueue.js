@@ -36,6 +36,8 @@ const songQueue = {
 
     const newSongs = songsArray.filter(
       (newSong) =>
+        newSong &&
+        newSong.path &&
         !this.songs.some((existingSong) => existingSong.path === newSong.path),
     );
 
@@ -63,6 +65,35 @@ const songQueue = {
     } else if (index === this.currentIndex) {
       if (this.currentIndex >= this.songs.length) {
         this.currentIndex = this.songs.length - 1;
+      }
+    }
+
+    return this.getAllSongs();
+  },
+
+  reorderSongs(fromIndex, toIndex) {
+    if (
+      fromIndex < 0 ||
+      fromIndex >= this.songs.length ||
+      toIndex < 0 ||
+      toIndex >= this.songs.length ||
+      fromIndex === toIndex
+    ) {
+      return this.getAllSongs();
+    }
+
+    const currentSong = this.getCurrentSong();
+    const [moved] = this.songs.splice(fromIndex, 1);
+    this.songs.splice(toIndex, 0, moved);
+
+    if (currentSong) {
+      const newCurrentIndex = this.songs.findIndex(
+        (s) =>
+          s === currentSong ||
+          (s.path && currentSong.path && s.path === currentSong.path),
+      );
+      if (newCurrentIndex !== -1) {
+        this.currentIndex = newCurrentIndex;
       }
     }
 
@@ -135,11 +166,10 @@ const songQueue = {
 
     if (this.currentIndex < this.songs.length - 1) {
       this.currentIndex++;
-    } else {
-      this.currentIndex = 0;
+      return this.getCurrentSong();
     }
 
-    return this.getCurrentSong();
+    return null;
   },
 
   previousSong() {

@@ -6,15 +6,24 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { invoke } from "@tauri-apps/api/core";
 
 function MiniDisc({ coverArt }) {
-  const { currentTime, isPlaying, togglePlay } = useAudio();
+  const {
+    currentTime,
+    isPlaying,
+    isSeeking,
+    seekTrigger,
+    audioFile,
+    togglePlay,
+  } = useAudio();
   const discRef = useRef(null);
   const dragCleanupRef = useRef(null);
   const { getDiscStyle } = useDiscRotation(
     currentTime,
     isPlaying,
-    false,
+    isSeeking,
     coverArt,
     discRef,
+    audioFile,
+    seekTrigger,
   );
 
   useEffect(() => {
@@ -80,14 +89,21 @@ function MiniDisc({ coverArt }) {
     window.addEventListener("mouseup", onMouseUp);
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      togglePlay();
+    }
+  };
+
   return (
     <div
       className={styles.discWrapper}
       onMouseDown={handleMouseDown}
+      onKeyDown={handleKeyDown}
       role="button"
       tabIndex={0}
       aria-label={isPlaying ? "Pause music" : "Play music"}
-      title={isPlaying ? "Pause" : "Play"}
     >
       <div
         ref={discRef}

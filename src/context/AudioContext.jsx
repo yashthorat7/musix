@@ -33,7 +33,6 @@ export function AudioProvider({ children }) {
     savedState.currentTrack?.path || "",
   );
   const activeAudioPathRef = useRef(savedState.currentTrack?.path || "");
-  const [seekingDirection] = useState(0);
   const [queue, setQueue] = useState(savedState.queue || []);
   const [currentIndex, setCurrentIndex] = useState(
     typeof savedState.currentIndex === "number" ? savedState.currentIndex : -1,
@@ -43,6 +42,7 @@ export function AudioProvider({ children }) {
   const { metadata, extractMetadata, setMetadata } = useMetadata();
 
   const equalizer = useWebAudioEqualizer(audioRef);
+  const [isSeeking, setIsSeeking] = useState(false);
 
   const handleResumeAudio = useCallback(() => {
     equalizer.initAudioGraph();
@@ -61,6 +61,7 @@ export function AudioProvider({ children }) {
     resetAudio,
     setIsPlaying,
     setCurrentTime,
+    seekTrigger,
   } = useAudioPlayer(audioRef, handleResumeAudio);
 
   const pauseAndReset = useCallback(() => {
@@ -90,35 +91,35 @@ export function AudioProvider({ children }) {
       }
 
       if (!meta?.cover_art) {
-        const cachedCover = getCachedCoverArt(meta, fileName, path);
+        const cachedCover = await getCachedCoverArt(meta, fileName, path);
         if (cachedCover) {
           meta = { ...(meta || {}), cover_art: cachedCover };
           setMetadata(meta);
           songQueue.updateSongMetadata(path, { cover_art: cachedCover });
           setQueue(songQueue.getAllSongs());
         } else {
-          fetchOnlineCoverArt(meta, fileName, path).then((onlineCover) => {
-            if (onlineCover) {
-              songQueue.updateSongMetadata(path, { cover_art: onlineCover });
-              setQueue(songQueue.getAllSongs());
-              if (activeAudioPathRef.current === path) {
-                setMetadata((prev) => ({
-                  ...(prev || meta || {}),
-                  cover_art: onlineCover,
-                }));
-                saveMusixState({
-                  currentTrack: {
-                    path,
-                    fileName,
-                    metadata: { ...(meta || {}), cover_art: onlineCover },
-                  },
-                });
+          fetchOnlineCoverArt(meta, fileName, path)
+            .then((onlineCover) => {
+              if (onlineCover) {
+                songQueue.updateSongMetadata(path, { cover_art: onlineCover });
+                setQueue(songQueue.getAllSongs());
+                if (activeAudioPathRef.current === path) {
+                  setMetadata((prev) => ({
+                    ...(prev || meta || {}),
+                    cover_art: onlineCover,
+                  }));
+                  saveMusixState({
+                    currentTrack: {
+                      path,
+                      fileName,
+                      metadata: { ...(meta || {}), cover_art: onlineCover },
+                    },
+                    queue: songQueue.getAllSongs(),
+                  });
+                }
               }
-              saveMusixState({
-                queue: songQueue.getAllSongs(),
-              });
-            }
-          });
+            })
+            .catch(() => {});
         }
       }
 
@@ -157,39 +158,43 @@ export function AudioProvider({ children }) {
     async (paths, playFirstImmediately = false) => {
       if (!paths || !Array.isArray(paths) || paths.length === 0) return;
 
-      const songsWithMetadata = [];
-
       try {
-        for (const path of paths) {
-          if (
-            typeof path === "string" &&
-            isAudioFile(path) &&
-            isAbsolutePath(path)
-          ) {
+        const validPaths = paths.filter(
+          (p) => typeof p === "string" && isAudioFile(p) && isAbsolutePath(p),
+        );
+
+        if (validPaths.length === 0) return;
+
+        const songsWithMetadata = await Promise.all(
+          validPaths.map(async (path) => {
+            const fileName = path.split(/[/\\]/).pop();
+            let meta = null;
             try {
-              let meta = null;
+              meta = await extractMetadata(path);
+            } catch (e) {
+              meta = null;
+            }
+
+            if (!meta?.cover_art) {
               try {
-                meta = await extractMetadata(path);
-              } catch (e) {
-                meta = null;
-              }
-              const fileName = path.split(/[/\\]/).pop();
-              if (!meta?.cover_art) {
-                const cachedCover = getCachedCoverArt(meta, fileName, path);
+                const cachedCover = await getCachedCoverArt(
+                  meta,
+                  fileName,
+                  path,
+                );
                 if (cachedCover) {
                   meta = { ...(meta || {}), cover_art: cachedCover };
                 }
-              }
-              songsWithMetadata.push({
-                path,
-                metadata: meta,
-                fileName,
-              });
-            } catch (err) {
-              console.warn("Metadata extraction error for", path, err);
+              } catch (e) {}
             }
-          }
-        }
+
+            return {
+              path,
+              metadata: meta,
+              fileName,
+            };
+          }),
+        );
 
         if (songsWithMetadata.length > 0) {
           const wasEmpty =
@@ -221,46 +226,10 @@ export function AudioProvider({ children }) {
               currentIndex: currentIdx,
             });
           }
-
-          songsWithMetadata.forEach((song) => {
-            if (!song.metadata?.cover_art) {
-              fetchOnlineCoverArt(song.metadata, song.fileName, song.path).then(
-                (onlineCover) => {
-                  if (onlineCover) {
-                    songQueue.updateSongMetadata(song.path, {
-                      cover_art: onlineCover,
-                    });
-                    setQueue(songQueue.getAllSongs());
-                    if (activeAudioPathRef.current === song.path) {
-                      setMetadata((prev) => ({
-                        ...(prev || song.metadata || {}),
-                        cover_art: onlineCover,
-                      }));
-                      saveMusixState({
-                        currentTrack: {
-                          path: song.path,
-                          fileName: song.fileName,
-                          metadata: {
-                            ...(song.metadata || {}),
-                            cover_art: onlineCover,
-                          },
-                        },
-                      });
-                    }
-                    saveMusixState({
-                      queue: songQueue.getAllSongs(),
-                    });
-                  }
-                },
-              );
-            }
-          });
         }
-      } catch (error) {
-        console.error("Error processing audio songs:", error);
-      }
+      } catch (error) {}
     },
-    [loadFile, extractMetadata, setMetadata],
+    [loadFile, extractMetadata],
   );
 
   useEffect(() => {
@@ -322,7 +291,7 @@ export function AudioProvider({ children }) {
               targetSong.fileName || targetSong.path.split(/[/\\]/).pop();
             const currentMeta = meta || targetSong.metadata;
             if (!currentMeta?.cover_art) {
-              const cached = getCachedCoverArt(
+              const cached = await getCachedCoverArt(
                 currentMeta,
                 fileName,
                 targetSong.path,
@@ -375,7 +344,7 @@ export function AudioProvider({ children }) {
             targetSong.fileName || targetSong.path.split(/[/\\]/).pop();
           const currentMeta = meta || targetSong.metadata;
           if (!currentMeta?.cover_art) {
-            const cached = getCachedCoverArt(
+            const cached = await getCachedCoverArt(
               currentMeta,
               fileName,
               targetSong.path,
@@ -402,13 +371,51 @@ export function AudioProvider({ children }) {
             }
           }
         }
-      } catch (err) {
-        console.warn("Error initializing audio from persistent state:", err);
-      }
+      } catch (err) {}
     };
 
     initFromStorage();
-  }, []);
+  }, [extractMetadata, loadAudio, processSongs, setMetadata]);
+
+  useEffect(() => {
+    const handleReconnect = () => {
+      const currentPath = activeAudioPathRef.current;
+      if (!currentPath) return;
+
+      const currentSong = songQueue
+        .getAllSongs()
+        .find((s) => s.path === currentPath);
+      const fileName =
+        currentSong?.fileName || currentPath.split(/[/\\]/).pop();
+
+      if (!metadata?.cover_art) {
+        fetchOnlineCoverArt(metadata, fileName, currentPath).then(
+          (onlineCover) => {
+            if (onlineCover && activeAudioPathRef.current === currentPath) {
+              setMetadata((prev) => ({
+                ...(prev || {}),
+                cover_art: onlineCover,
+              }));
+              songQueue.updateSongMetadata(currentPath, {
+                cover_art: onlineCover,
+              });
+              setQueue(songQueue.getAllSongs());
+              saveMusixState({
+                currentTrack: {
+                  path,
+                  fileName,
+                  metadata: { ...(metadata || {}), cover_art: onlineCover },
+                },
+              });
+            }
+          },
+        );
+      }
+    };
+
+    window.addEventListener("online", handleReconnect);
+    return () => window.removeEventListener("online", handleReconnect);
+  }, [metadata, setMetadata]);
 
   const handleNextSong = useCallback(() => {
     const nextSong = songQueue.nextSong();
@@ -450,20 +457,6 @@ export function AudioProvider({ children }) {
       return () => audio.removeEventListener("ended", handleSongEnd);
     }
   }, [loadFile, setIsPlaying]);
-
-  const playSongAtIndex = useCallback(
-    (index) => {
-      const all = songQueue.getAllSongs();
-      if (index >= 0 && index < all.length) {
-        const target = all[index];
-        songQueue.setCurrentIndex(index);
-        setCurrentIndex(index);
-        setQueue(songQueue.getAllSongs());
-        loadFile(target.path, true, 0);
-      }
-    },
-    [loadFile],
-  );
 
   const removeSong = useCallback(
     (index) => {
@@ -548,6 +541,38 @@ export function AudioProvider({ children }) {
     togglePlay();
   }, [togglePlay, loadFile, queue, equalizer]);
 
+  const playSongAtIndex = useCallback(
+    (index) => {
+      const all = songQueue.getAllSongs();
+      if (index >= 0 && index < all.length) {
+        const target = all[index];
+        if (
+          index === currentIndex &&
+          activeAudioPathRef.current === target.path
+        ) {
+          handleTogglePlay();
+          return;
+        }
+        songQueue.setCurrentIndex(index);
+        setCurrentIndex(index);
+        setQueue(songQueue.getAllSongs());
+        loadFile(target.path, true, 0);
+      }
+    },
+    [loadFile, currentIndex, handleTogglePlay],
+  );
+
+  const reorderSongs = useCallback((fromIndex, toIndex) => {
+    const newQueue = songQueue.reorderSongs(fromIndex, toIndex);
+    const newCurrentIdx = songQueue.getCurrentIndex();
+    setQueue(newQueue);
+    setCurrentIndex(newCurrentIdx);
+    saveMusixState({
+      queue: newQueue,
+      currentIndex: newCurrentIdx,
+    });
+  }, []);
+
   useEffect(() => {
     let unlistenPlayPause;
     let unlistenNext;
@@ -576,7 +601,7 @@ export function AudioProvider({ children }) {
         .catch(() => {});
 
       listen("single-instance-args", (event) => {
-        const args = event.payload;
+        const args = event?.payload;
         if (Array.isArray(args) && args.length > 0) {
           const fileArgs = args.filter(isAudioFile);
           if (fileArgs.length > 0) {
@@ -720,13 +745,16 @@ export function AudioProvider({ children }) {
     handleNext: handleNextSong,
     fileName: audioFile ? audioFile.split(/[/\\]/).pop() : null,
     displayTitle: getCleanTitle(audioFile, metadata?.title),
-    seekingDirection,
     queue,
     currentIndex,
     equalizer,
     clearQueue,
     shuffleQueue,
     removeSong,
+    reorderSongs,
+    isSeeking,
+    setIsSeeking,
+    seekTrigger,
     pauseAndReset,
   };
 
@@ -740,7 +768,8 @@ export function AudioProvider({ children }) {
 
 export function useAudio() {
   const context = useContext(AudioContext);
-  if (!context)
+  if (!context) {
     throw new Error("useAudio must be used within an AudioProvider");
+  }
   return context;
 }

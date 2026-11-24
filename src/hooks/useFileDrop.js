@@ -5,10 +5,12 @@ import { isAudioFile } from "../utils/audioFormats";
 export function useFileDrop(onFileDrop) {
   const handleDrop = useCallback(
     (event) => {
-      if (event.payload.type === "drop" && event.payload.paths.length > 0) {
-        const inOsOrder = event.payload.paths.slice();
-        const audioFiles = inOsOrder.filter(isAudioFile);
-
+      if (
+        event?.payload?.type === "drop" &&
+        Array.isArray(event.payload.paths) &&
+        event.payload.paths.length > 0
+      ) {
+        const audioFiles = event.payload.paths.filter(isAudioFile);
         if (audioFiles.length > 0) {
           onFileDrop(audioFiles);
         }

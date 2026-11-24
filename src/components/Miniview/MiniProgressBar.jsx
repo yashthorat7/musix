@@ -3,17 +3,31 @@ import styles from "./MiniProgressBar.module.css";
 import { useAudio } from "../../context/AudioContext";
 
 function MiniProgressBar() {
-  const { currentTime, duration, handleSeek } = useAudio();
+  const { currentTime, duration, handleSeek, setIsSeeking } = useAudio();
   const progressBarRef = useRef(null);
   const [isScrubbing, setIsScrubbing] = useState(false);
-  const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+  const validDuration =
+    typeof duration === "number" && Number.isFinite(duration) && duration > 0
+      ? duration
+      : 0;
+  const validCurrentTime =
+    typeof currentTime === "number" && Number.isFinite(currentTime)
+      ? Math.max(0, Math.min(currentTime, validDuration || 0))
+      : 0;
+
+  const progressPercentage =
+    validDuration > 0
+      ? Math.max(0, Math.min(100, (validCurrentTime / validDuration) * 100))
+      : 0;
 
   const seekFromClientX = (clientX) => {
-    if (!progressBarRef.current || !duration || duration <= 0) return;
+    if (!progressBarRef.current || validDuration <= 0) return;
     const rect = progressBarRef.current.getBoundingClientRect();
+    if (rect.width <= 0) return;
     const clickX = clientX - rect.left;
     const ratio = Math.max(0, Math.min(1, clickX / rect.width));
-    const newTime = ratio * duration;
+    const newTime = ratio * validDuration;
     handleSeek(newTime);
   };
 
@@ -29,11 +43,13 @@ function MiniProgressBar() {
     if (!isScrubbing) return;
 
     const handleMouseMove = (e) => {
+      setIsSeeking(true);
       seekFromClientX(e.clientX);
     };
 
     const handleMouseUp = () => {
       setIsScrubbing(false);
+      setIsSeeking(false);
     };
 
     window.addEventListener("mousemove", handleMouseMove);
@@ -42,7 +58,7 @@ function MiniProgressBar() {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [isScrubbing, duration]);
+  }, [isScrubbing, validDuration]);
 
   return (
     <div
@@ -50,10 +66,9 @@ function MiniProgressBar() {
       ref={progressBarRef}
       onMouseDown={handleMouseDown}
       role="slider"
-      aria-valuenow={currentTime}
+      aria-valuenow={validCurrentTime}
       aria-valuemin={0}
-      aria-valuemax={duration}
-      title="Seek"
+      aria-valuemax={validDuration}
       data-no-window-drag
     >
       <div className={styles.progressBar}>

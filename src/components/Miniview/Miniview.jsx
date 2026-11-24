@@ -75,11 +75,7 @@ function Miniview({ onRestore, isPreview = false }) {
   };
 
   return (
-    <div
-      className={styles.container}
-      onMouseDown={handleMouseDown}
-      title="Expand"
-    >
+    <div className={styles.container} onMouseDown={handleMouseDown}>
       <MiniDisc coverArt={metadata?.cover_art} />
       <MiniProgressBar />
     </div>

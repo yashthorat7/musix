@@ -6,20 +6,25 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { invoke } from "@tauri-apps/api/core";
 
 function Disc({ coverArt }) {
-  const { currentTime, isPlaying, togglePlay } = useAudio();
-  const discRef = useRef(null);
-  const dragCleanupRef = useRef(null);
-  const { getDiscStyle, randomizeGradient } = useDiscRotation(
+  const {
     currentTime,
     isPlaying,
-    false,
+    isSeeking,
+    seekTrigger,
+    audioFile,
+    togglePlay,
+  } = useAudio();
+  const discRef = useRef(null);
+  const dragCleanupRef = useRef(null);
+  const { getDiscStyle } = useDiscRotation(
+    currentTime,
+    isPlaying,
+    isSeeking,
     coverArt,
     discRef,
+    audioFile,
+    seekTrigger,
   );
-
-  useEffect(() => {
-    randomizeGradient();
-  }, [coverArt]);
 
   useEffect(() => {
     return () => {
@@ -84,10 +89,18 @@ function Disc({ coverArt }) {
     window.addEventListener("mouseup", onMouseUp);
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      togglePlay();
+    }
+  };
+
   return (
     <div
       className={styles.discWrapper}
       onMouseDown={handleMouseDown}
+      onKeyDown={handleKeyDown}
       onDragStart={(e) => e.preventDefault()}
       role="button"
       tabIndex={0}

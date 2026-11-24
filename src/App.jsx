@@ -5,9 +5,9 @@ import Directory from "./components/Directory/Directory";
 import Equalizer from "./components/Equalizer/Equalizer";
 import Miniview from "./components/Miniview/Miniview";
 import "./App.css";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAudio } from "./context/AudioContext";
-import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { invoke } from "@tauri-apps/api/core";
 
 function App() {
@@ -19,9 +19,29 @@ function App() {
     clearQueue,
     shuffleQueue,
     playSongAtIndex,
+    reorderSongs,
   } = useAudio();
   const [viewMode, setViewMode] = useState("full");
   const isTransitioning = useRef(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Tab") {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    if (viewMode === "full") {
+      invoke("resize_window_keep_anchor", {
+        targetWidth: 256.0,
+        targetHeight: 256.0,
+      }).catch(() => {});
+    }
+  }, [viewMode]);
 
   const handleRemoveSong = (index) => {
     removeSong(index);
@@ -33,7 +53,9 @@ function App() {
     setActivePanel(null);
     setViewMode("minimizing");
 
-    await new Promise((resolve) => setTimeout(resolve, 230));
+    await new Promise((resolve) => setTimeout(resolve, 220));
+
+    setViewMode("miniview");
 
     try {
       await invoke("resize_window_keep_anchor", {
@@ -41,13 +63,7 @@ function App() {
         targetHeight: 96.0,
       });
     } catch (e) {
-      try {
-        const win = getCurrentWindow();
-        await win.setSize(new LogicalSize(96, 96));
-        await invoke("reposition_window");
-      } catch (err) {}
     } finally {
-      setViewMode("miniview");
       isTransitioning.current = false;
     }
   };
@@ -57,24 +73,28 @@ function App() {
     isTransitioning.current = true;
 
     try {
-      await invoke("resize_window_keep_anchor", {
-        targetWidth: 256.0,
-        targetHeight: 256.0,
-      });
-    } catch (e) {
       try {
-        const win = getCurrentWindow();
-        await win.setSize(new LogicalSize(256, 256));
-        await invoke("reposition_window");
-      } catch (err) {}
+        await invoke("resize_window_keep_anchor", {
+          targetWidth: 256.0,
+          targetHeight: 256.0,
+        });
+      } catch (e) {}
+
+      setViewMode("maximizing");
+
+      await new Promise((resolve) => setTimeout(resolve, 220));
+
+      setViewMode("full");
+
+      try {
+        await invoke("resize_window_keep_anchor", {
+          targetWidth: 256.0,
+          targetHeight: 256.0,
+        });
+      } catch (e) {}
+    } finally {
+      isTransitioning.current = false;
     }
-
-    setViewMode("maximizing");
-
-    await new Promise((resolve) => setTimeout(resolve, 230));
-
-    setViewMode("full");
-    isTransitioning.current = false;
   };
 
   const handleDragMouseDown = (e) => {
@@ -125,7 +145,21 @@ function App() {
         {isMini ? (
           <Miniview onRestore={handleRestoreMain} />
         ) : (
-          <div className={cardClasses}>
+          <div
+            className={cardClasses}
+            onDoubleClick={(e) => {
+              if (
+                e.target.closest(
+                  "button, input, [data-slider], a, [data-no-window-drag]",
+                )
+              )
+                return;
+              invoke("resize_window_keep_anchor", {
+                targetWidth: 256.0,
+                targetHeight: 256.0,
+              }).catch(() => {});
+            }}
+          >
             <Player onMinimize={handleShowMiniview} viewMode={viewMode} />
             <Directory
               isOpen={activePanel === "directory"}
@@ -135,6 +169,7 @@ function App() {
               onClear={clearQueue}
               onShuffle={shuffleQueue}
               onSelectSong={playSongAtIndex}
+              onReorder={reorderSongs}
             />
             <Equalizer isOpen={activePanel === "equalizer"} />
             <div className={sidebarClasses}>

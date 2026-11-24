@@ -91,11 +91,6 @@
   filter: saturate(1);
 }
 
-.iconButton:hover {
-  background: transparent;
-  filter: saturate(1);
-}
-
 .sliderContainer {
   height: 98px;
   width: 22px;

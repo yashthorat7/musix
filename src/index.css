@@ -10,8 +10,33 @@ body,
   background: transparent !important;
   border: none;
   display: flex;
-  justify-content: center;
-  align-items: center;
+  justify-content: flex-end;
+  align-items: flex-end;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+*:focus,
+*:focus-visible,
+*:focus-within {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+button:focus,
+button:focus-visible,
+input:focus,
+input:focus-visible,
+a:focus,
+a:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 @keyframes musixVinylSpin {
@@ -21,4 +46,14 @@ body,
   to {
     transform: rotate(360deg);
   }
+}
+
+vite-error-overlay,
+#webpack-dev-server-client-overlay,
+div[class*="error-overlay"],
+div[class*="react-error"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }

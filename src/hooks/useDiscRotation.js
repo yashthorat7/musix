@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 
 const gradientVariants = [
   {
@@ -76,6 +76,11 @@ const gradientVariants = [
 ];
 
 const SECONDS_PER_REV = 20;
+const ROT_SPEED = 360 / SECONDS_PER_REV;
+
+let globalDiscAngle = 0;
+let globalTargetAngle = 0;
+let globalTrackKey = "";
 
 export function useDiscRotation(
   currentTime,
@@ -83,15 +88,70 @@ export function useDiscRotation(
   isSeeking,
   coverArt,
   discRef,
+  trackId = "",
+  seekTrigger = null,
 ) {
   const gradientRef = useRef(
     gradientVariants[Math.floor(Math.random() * gradientVariants.length)],
   );
 
-  const angleRef = useRef(0);
-  const prevTimeRef = useRef(Number(currentTime) || 0);
-  const prevCoverRef = useRef(coverArt);
+  const angleRef = useRef(globalDiscAngle);
+  const targetAngleRef = useRef(globalTargetAngle);
+  const prevTrackRef = useRef(trackId || coverArt || globalTrackKey || "");
   const lastFrameTimeRef = useRef(performance.now());
+  const isPlayingRef = useRef(isPlaying);
+  const isSeekingRef = useRef(isSeeking);
+  const lastSeekTimestampRef = useRef(0);
+  const animIdRef = useRef(null);
+
+  const [isOnline, setIsOnline] = useState(
+    typeof navigator !== "undefined" ? navigator.onLine !== false : true,
+  );
+  const [isCoverValid, setIsCoverValid] = useState(true);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!coverArt) {
+      setIsCoverValid(false);
+      return;
+    }
+
+    if (coverArt.startsWith("data:") || coverArt.startsWith("blob:")) {
+      setIsCoverValid(true);
+      return;
+    }
+
+    if (!isOnline) {
+      setIsCoverValid(false);
+      return;
+    }
+
+    let active = true;
+    const img = new Image();
+    img.onload = () => {
+      if (active) setIsCoverValid(true);
+    };
+    img.onerror = () => {
+      if (active) setIsCoverValid(false);
+    };
+    img.src = coverArt;
+
+    return () => {
+      active = false;
+    };
+  }, [coverArt, isOnline]);
 
   const randomizeGradient = () => {
     gradientRef.current =
@@ -103,69 +163,152 @@ export function useDiscRotation(
   }, [coverArt]);
 
   useEffect(() => {
-    const time = Number(currentTime) || 0;
-    const isSongChange =
-      coverArt !== prevCoverRef.current ||
-      (prevTimeRef.current > 5 && time < 1);
+    const currentKey = trackId || coverArt || "";
+    if (!currentKey) return;
 
-    if (isSongChange) {
-      prevCoverRef.current = coverArt;
-      prevTimeRef.current = time;
-      return;
+    if (prevTrackRef.current && prevTrackRef.current !== currentKey) {
+      targetAngleRef.current = angleRef.current;
+      globalTargetAngle = angleRef.current;
+      globalDiscAngle = angleRef.current;
     }
+    prevTrackRef.current = currentKey;
+    globalTrackKey = currentKey;
+  }, [trackId, coverArt]);
 
-    const delta = time - prevTimeRef.current;
-    prevTimeRef.current = time;
-
-    if (!isPlaying || isSeeking) {
-      if (Math.abs(delta) > 0.01 && Math.abs(delta) < 60) {
-        angleRef.current =
-          (angleRef.current + (delta / SECONDS_PER_REV) * 360) % 3600000;
-        if (discRef?.current) {
-          discRef.current.style.transform = `rotate(${angleRef.current}deg)`;
-        }
-      }
-    }
-  }, [currentTime, isPlaying, isSeeking, coverArt, discRef]);
-
-  useEffect(() => {
-    if (!isPlaying) {
-      if (discRef?.current) {
-        discRef.current.style.transform = `rotate(${angleRef.current}deg)`;
-      }
-      return;
-    }
-
+  const startAnimation = useCallback(() => {
+    if (animIdRef.current) return;
     lastFrameTimeRef.current = performance.now();
-    let animId;
 
     const tick = (now) => {
       const dt = Math.min((now - lastFrameTimeRef.current) / 1000, 0.1);
       lastFrameTimeRef.current = now;
 
-      angleRef.current =
-        (angleRef.current + (dt / SECONDS_PER_REV) * 360) % 3600000;
+      const activePlaying = isPlayingRef.current;
+      const seeking = isSeekingRef.current;
+
+      const diff = targetAngleRef.current - angleRef.current;
+      const absDiff = Math.abs(diff);
+
+      if (seeking) {
+        angleRef.current = targetAngleRef.current;
+      } else if (absDiff > 0.05) {
+        const catchUpSpeed = Math.max(absDiff / 0.4, 240);
+        const step = Math.sign(diff) * catchUpSpeed * dt;
+        if (Math.abs(step) >= absDiff) {
+          angleRef.current = targetAngleRef.current;
+        } else {
+          angleRef.current += step;
+        }
+      } else {
+        angleRef.current = targetAngleRef.current;
+        if (activePlaying) {
+          angleRef.current += ROT_SPEED * dt;
+          targetAngleRef.current = angleRef.current;
+        }
+      }
+
+      globalDiscAngle = angleRef.current;
+      globalTargetAngle = targetAngleRef.current;
 
       if (discRef?.current) {
         discRef.current.style.transform = `rotate(${angleRef.current}deg)`;
       }
 
-      animId = requestAnimationFrame(tick);
+      const remainingDiff = Math.abs(targetAngleRef.current - angleRef.current);
+      if (activePlaying || remainingDiff > 0.05) {
+        animIdRef.current = requestAnimationFrame(tick);
+      } else {
+        animIdRef.current = null;
+      }
     };
 
-    animId = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(animId);
-  }, [isPlaying, discRef]);
+    animIdRef.current = requestAnimationFrame(tick);
+  }, [discRef]);
+
+  useEffect(() => {
+    isSeekingRef.current = isSeeking;
+    if (!isSeeking) {
+      targetAngleRef.current = angleRef.current;
+      globalTargetAngle = angleRef.current;
+      globalDiscAngle = angleRef.current;
+      if (isPlayingRef.current) {
+        startAnimation();
+      }
+    }
+  }, [isSeeking, startAnimation]);
+
+  useEffect(() => {
+    if (
+      !seekTrigger ||
+      seekTrigger.timestamp === lastSeekTimestampRef.current
+    ) {
+      return;
+    }
+    lastSeekTimestampRef.current = seekTrigger.timestamp;
+
+    const delta = seekTrigger.delta;
+    if (!Number.isFinite(delta)) return;
+
+    const deltaAngle = delta * ROT_SPEED;
+    targetAngleRef.current += deltaAngle;
+    globalTargetAngle = targetAngleRef.current;
+
+    if (isSeekingRef.current) {
+      angleRef.current = targetAngleRef.current;
+      globalDiscAngle = angleRef.current;
+      if (discRef?.current) {
+        discRef.current.style.transform = `rotate(${angleRef.current}deg)`;
+      }
+    } else {
+      startAnimation();
+    }
+  }, [seekTrigger, startAnimation, discRef]);
+
+  useEffect(() => {
+    isPlayingRef.current = isPlaying;
+
+    if (isPlaying) {
+      targetAngleRef.current = angleRef.current;
+      globalTargetAngle = angleRef.current;
+      globalDiscAngle = angleRef.current;
+      startAnimation();
+    } else {
+      if (animIdRef.current) {
+        cancelAnimationFrame(animIdRef.current);
+        animIdRef.current = null;
+      }
+      targetAngleRef.current = angleRef.current;
+      globalTargetAngle = angleRef.current;
+      globalDiscAngle = angleRef.current;
+      if (discRef?.current) {
+        discRef.current.style.transform = `rotate(${angleRef.current}deg)`;
+      }
+    }
+
+    return () => {
+      if (animIdRef.current) {
+        cancelAnimationFrame(animIdRef.current);
+        animIdRef.current = null;
+      }
+    };
+  }, [isPlaying, startAnimation, discRef]);
 
   const getDiscStyle = (customCover) => {
     const activeCover = customCover || coverArt;
+    const isLocal =
+      activeCover &&
+      (activeCover.startsWith("data:") || activeCover.startsWith("blob:"));
+    const canDisplay = Boolean(
+      activeCover && (isLocal || (isOnline && isCoverValid)),
+    );
+
     const gradientBackground = `radial-gradient(circle at top left, ${gradientRef.current.topLeft}, transparent 70%),
                 radial-gradient(circle at top right, ${gradientRef.current.topRight}, transparent 70%),
                 radial-gradient(circle at bottom left, ${gradientRef.current.bottomLeft}, transparent 70%),
                 radial-gradient(circle at bottom right, ${gradientRef.current.bottomRight}, transparent 70%)`;
 
     return {
-      backgroundImage: activeCover
+      backgroundImage: canDisplay
         ? `url("${activeCover}"), ${gradientBackground}`
         : gradientBackground,
       backgroundSize: "cover",

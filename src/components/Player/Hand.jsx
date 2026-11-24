@@ -21,7 +21,13 @@ export default function Hand({ onClose }) {
         <div className={styles.handHead}></div>
       </div>
       <div className={styles.closeWrapper}>
-        <button className={styles.closeButton} onClick={onClose} type="button">
+        <button
+          className={styles.closeButton}
+          onClick={onClose}
+          type="button"
+          title="Close"
+          aria-label="Close"
+        >
           <div className={styles.closeButtonInner}></div>
         </button>
       </div>

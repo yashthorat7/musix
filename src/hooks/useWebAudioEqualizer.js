@@ -32,6 +32,13 @@ export function useWebAudioEqualizer(audioRef) {
     air: null,
   });
   const isConnectedRef = useRef(false);
+  const saveTimeoutRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    };
+  }, []);
 
   const initAudioGraph = useCallback(() => {
     if (isConnectedRef.current || !audioRef?.current) return;
@@ -102,9 +109,7 @@ export function useWebAudioEqualizer(audioRef) {
       if (ctx.state === "suspended") {
         ctx.resume().catch(() => {});
       }
-    } catch (err) {
-      console.warn("Web Audio Equalizer initialization warning:", err);
-    }
+    } catch (err) {}
   }, [audioRef]);
 
   const resumeAudioContext = useCallback(() => {
@@ -133,7 +138,10 @@ export function useWebAudioEqualizer(audioRef) {
           air: prev.air ?? 50,
           [band]: value,
         };
-        saveMusixState({ equalizer: next });
+        if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = setTimeout(() => {
+          saveMusixState({ equalizer: next });
+        }, 300);
         return next;
       });
       updateFilterGain(band, value);
@@ -144,6 +152,7 @@ export function useWebAudioEqualizer(audioRef) {
   const resetLevels = useCallback(() => {
     initAudioGraph();
     resumeAudioContext();
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     const flat = { bass: 50, mids: 50, treble: 50, air: 50 };
     setLevels(flat);
     saveMusixState({ equalizer: flat });

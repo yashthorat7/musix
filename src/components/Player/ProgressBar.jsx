@@ -1,22 +1,37 @@
 import React, { useRef, useState, useEffect } from "react";
 import styles from "./ProgressBar.module.css";
+import { useAudio } from "../../context/AudioContext";
 
 function ProgressBar({ currentTime, duration, onSeek }) {
+  const { setIsSeeking } = useAudio();
   const progressBarRef = useRef(null);
   const [isScrubbing, setIsScrubbing] = useState(false);
-  const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+  const validDuration =
+    typeof duration === "number" && Number.isFinite(duration) && duration > 0
+      ? duration
+      : 0;
+  const validCurrentTime =
+    typeof currentTime === "number" && Number.isFinite(currentTime)
+      ? Math.max(0, Math.min(currentTime, validDuration || 0))
+      : 0;
+
+  const progressPercentage =
+    validDuration > 0
+      ? Math.max(0, Math.min(100, (validCurrentTime / validDuration) * 100))
+      : 0;
 
   const seekFromClientX = (clientX) => {
-    if (!progressBarRef.current || !duration || duration <= 0) return;
+    if (!progressBarRef.current || validDuration <= 0) return;
     const rect = progressBarRef.current.getBoundingClientRect();
+    if (rect.width <= 0) return;
     const clickPosition = clientX - rect.left;
-    const progressBarWidth = rect.width;
-    let clickPercentage = clickPosition / progressBarWidth;
+    let clickPercentage = clickPosition / rect.width;
 
     clickPercentage = Math.max(0, Math.min(clickPercentage, 1));
     if (clickPercentage <= 0.01) clickPercentage = 0;
 
-    const newTime = duration * clickPercentage;
+    const newTime = validDuration * clickPercentage;
     onSeek(newTime);
   };
 
@@ -32,11 +47,13 @@ function ProgressBar({ currentTime, duration, onSeek }) {
     if (!isScrubbing) return;
 
     const handleMouseMove = (e) => {
+      setIsSeeking(true);
       seekFromClientX(e.clientX);
     };
 
     const handleMouseUp = () => {
       setIsScrubbing(false);
+      setIsSeeking(false);
     };
 
     window.addEventListener("mousemove", handleMouseMove);
@@ -45,7 +62,7 @@ function ProgressBar({ currentTime, duration, onSeek }) {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [isScrubbing, duration]);
+  }, [isScrubbing, validDuration]);
 
   return (
     <div
@@ -53,9 +70,9 @@ function ProgressBar({ currentTime, duration, onSeek }) {
       onMouseDown={handleMouseDown}
       ref={progressBarRef}
       role="slider"
-      aria-valuenow={currentTime}
+      aria-valuenow={validCurrentTime}
       aria-valuemin={0}
-      aria-valuemax={duration}
+      aria-valuemax={validDuration}
       data-no-window-drag
     >
       <div className={styles.progressBar}>

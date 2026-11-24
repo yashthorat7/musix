@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from "react";
 import styles from "./Title.module.css";
 
-function Title({ text, repeat = 80, speed = 50 }) {
+function Title({ text, repeat = 12, speed = 50 }) {
   const trackRef = useRef(null);
   const [duration, setDuration] = useState(0);
 
@@ -11,7 +11,9 @@ function Title({ text, repeat = 80, speed = 50 }) {
   useEffect(() => {
     if (trackRef.current) {
       const trackWidth = trackRef.current.scrollWidth;
-      setDuration(trackWidth / speed);
+      if (trackWidth > 0 && speed > 0) {
+        setDuration(trackWidth / speed);
+      }
     }
   }, [titleText, repeat, speed]);
 

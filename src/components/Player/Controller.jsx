@@ -15,6 +15,7 @@ function Controller() {
           className={styles.button}
           onClick={handlePrevious}
           type="button"
+          aria-label="Previous track"
         >
           <img
             src="/icons/double-arrow.svg"
@@ -28,7 +29,12 @@ function Controller() {
           <span className={styles.divider}>|</span>
           <span className={styles.duration}>{formatTime(duration)}</span>
         </div>
-        <button className={styles.button} onClick={handleNext} type="button">
+        <button
+          className={styles.button}
+          onClick={handleNext}
+          type="button"
+          aria-label="Next track"
+        >
           <img
             src="/icons/double-arrow.svg"
             className={styles.forwardArrow}

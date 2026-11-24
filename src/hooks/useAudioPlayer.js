@@ -7,15 +7,28 @@ export function useAudioPlayer(audioRef, onResumeAudio) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [volume, setVolumeState] = useState(
-    typeof savedState.volume === "number" ? savedState.volume : 0.7,
-  );
-  const clickTimeoutRef = useRef(null);
+  const [seekTrigger, setSeekTrigger] = useState(null);
+  const lastSeekTimeRef = useRef(0);
+
+  const initialVolume =
+    typeof savedState.volume === "number" && Number.isFinite(savedState.volume)
+      ? Math.max(0, Math.min(1, savedState.volume))
+      : 0.7;
+
+  const [volume, setVolumeState] = useState(initialVolume);
+  const volumeRef = useRef(initialVolume);
+
+  const isPlayRequestedRef = useRef(false);
+  const playPromiseRef = useRef(null);
 
   const setVolume = useCallback(
     (val) => {
-      const clamped = Math.max(0, Math.min(1, Number(val) || 0));
+      const num = Number(val);
+      const clamped = Number.isFinite(num)
+        ? Math.max(0, Math.min(1, num))
+        : 0.7;
       setVolumeState(clamped);
+      volumeRef.current = clamped;
       if (audioRef.current) {
         audioRef.current.volume = clamped;
       }
@@ -31,29 +44,32 @@ export function useAudioPlayer(audioRef, onResumeAudio) {
         if (audioRef.current) {
           audioRef.current.crossOrigin = "anonymous";
           audioRef.current.src = fileUrl;
-          audioRef.current.volume = volume;
+          audioRef.current.volume = volumeRef.current;
           audioRef.current.load();
           audioRef.current.onloadedmetadata = () => {
-            const dur = audioRef.current.duration || 0;
+            const rawDur = audioRef.current?.duration;
+            const dur = Number.isFinite(rawDur) ? rawDur : 0;
             setDuration(dur);
             if (initialTime > 0 && initialTime < dur) {
               audioRef.current.currentTime = initialTime;
               setCurrentTime(initialTime);
+              lastSeekTimeRef.current = initialTime;
+            } else {
+              lastSeekTimeRef.current = 0;
             }
           };
-          audioRef.current.onerror = (e) => {
-            console.error("Audio error:", e, audioRef.current.error);
+          audioRef.current.onerror = () => {
+            setIsPlaying(false);
+            isPlayRequestedRef.current = false;
           };
         }
       } catch (error) {
-        console.error("Error loading audio:", error);
+        setIsPlaying(false);
+        isPlayRequestedRef.current = false;
       }
     },
-    [audioRef, volume],
+    [audioRef],
   );
-
-  const isPlayRequestedRef = useRef(false);
-  const playPromiseRef = useRef(null);
 
   const togglePlay = useCallback(() => {
     const audio = audioRef.current;
@@ -114,7 +130,6 @@ export function useAudioPlayer(audioRef, onResumeAudio) {
             if (err.name === "AbortError") {
               return;
             }
-            console.warn("Playback error:", err);
             setIsPlaying(false);
             isPlayRequestedRef.current = false;
           });
@@ -126,28 +141,37 @@ export function useAudioPlayer(audioRef, onResumeAudio) {
 
   const handleSeek = useCallback(
     (time) => {
-      if (audioRef.current) {
+      if (
+        audioRef.current &&
+        Number.isFinite(time) &&
+        Number.isFinite(duration)
+      ) {
         const safeTime = Math.max(0, Math.min(time, duration || 0));
+        const prev = lastSeekTimeRef.current;
+        lastSeekTimeRef.current = safeTime;
         audioRef.current.currentTime = safeTime;
         setCurrentTime(safeTime);
+        setSeekTrigger({
+          time: safeTime,
+          prevTime: prev,
+          delta: safeTime - prev,
+          timestamp: performance.now(),
+        });
       }
     },
     [audioRef, duration],
   );
 
   const handlePrevious = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = 0;
-      setCurrentTime(0);
-    }
-  }, [audioRef]);
+    handleSeek(0);
+  }, [handleSeek]);
 
   const handleNext = useCallback(() => {
-    if (audioRef.current && duration) {
-      audioRef.current.currentTime = Math.max(0, duration - 3);
-      setCurrentTime(Math.max(0, duration - 3));
+    if (Number.isFinite(duration) && duration > 0) {
+      const targetTime = Math.max(0, duration - 3);
+      handleSeek(targetTime);
     }
-  }, [audioRef, duration]);
+  }, [duration, handleSeek]);
 
   const resetAudio = useCallback(() => {
     if (audioRef.current) {
@@ -156,6 +180,7 @@ export function useAudioPlayer(audioRef, onResumeAudio) {
       setIsPlaying(false);
       setCurrentTime(0);
       setDuration(0);
+      lastSeekTimeRef.current = 0;
     }
   }, [audioRef]);
 
@@ -167,13 +192,17 @@ export function useAudioPlayer(audioRef, onResumeAudio) {
 
     const updateTime = () => {
       const now = audio.currentTime;
-      setCurrentTime(now);
+      if (Number.isFinite(now)) {
+        setCurrentTime(now);
+        lastSeekTimeRef.current = now;
+      }
     };
 
     const handleEnded = () => {
       isPlayRequestedRef.current = false;
       setIsPlaying(false);
       setCurrentTime(0);
+      lastSeekTimeRef.current = 0;
       saveMusixState({ currentTime: 0 });
     };
 
@@ -182,9 +211,16 @@ export function useAudioPlayer(audioRef, onResumeAudio) {
       setIsPlaying(true);
     };
 
+    const handlePlaying = () => {
+      isPlayRequestedRef.current = true;
+      setIsPlaying(true);
+    };
+
     const handlePause = () => {
-      isPlayRequestedRef.current = false;
-      setIsPlaying(false);
+      if (audio.paused) {
+        isPlayRequestedRef.current = false;
+        setIsPlaying(false);
+      }
     };
 
     const handleError = () => {
@@ -195,6 +231,7 @@ export function useAudioPlayer(audioRef, onResumeAudio) {
     audio.addEventListener("timeupdate", updateTime);
     audio.addEventListener("ended", handleEnded);
     audio.addEventListener("play", handlePlay);
+    audio.addEventListener("playing", handlePlaying);
     audio.addEventListener("pause", handlePause);
     audio.addEventListener("error", handleError);
 
@@ -202,6 +239,7 @@ export function useAudioPlayer(audioRef, onResumeAudio) {
       audio.removeEventListener("timeupdate", updateTime);
       audio.removeEventListener("ended", handleEnded);
       audio.removeEventListener("play", handlePlay);
+      audio.removeEventListener("playing", handlePlaying);
       audio.removeEventListener("pause", handlePause);
       audio.removeEventListener("error", handleError);
     };
@@ -222,5 +260,6 @@ export function useAudioPlayer(audioRef, onResumeAudio) {
     setIsPlaying,
     setCurrentTime,
     setDuration,
+    seekTrigger,
   };
 }

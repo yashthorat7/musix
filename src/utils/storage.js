@@ -22,6 +22,8 @@ const DEFAULT_STATE = {
   },
 };
 
+let cachedState = null;
+
 export function isAbsolutePath(path) {
   if (!path || typeof path !== "string") return false;
   return /^[a-zA-Z]:[/\\]|^\\\\|^\//.test(path);
@@ -42,11 +44,14 @@ function sanitizeSongForStorage(song) {
           title: meta.title || null,
           artist: meta.artist || null,
           album: meta.album || null,
-          duration: meta.duration || null,
+          duration:
+            typeof meta.duration === "number" && Number.isFinite(meta.duration)
+              ? meta.duration
+              : null,
           year: meta.year || null,
           genre: meta.genre || null,
           cover_art:
-            meta.cover_art && meta.cover_art.length < 80000
+            typeof meta.cover_art === "string" && meta.cover_art.length < 80000
               ? meta.cover_art
               : null,
         }
@@ -55,9 +60,17 @@ function sanitizeSongForStorage(song) {
 }
 
 export function loadMusixState() {
+  if (cachedState) return cachedState;
+
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULT_STATE;
+    const raw =
+      typeof localStorage !== "undefined"
+        ? localStorage.getItem(STORAGE_KEY)
+        : null;
+    if (!raw) {
+      cachedState = { ...DEFAULT_STATE };
+      return cachedState;
+    }
 
     const parsed = JSON.parse(raw);
     const parsedEq = parsed.equalizer || {};
@@ -91,9 +104,15 @@ export function loadMusixState() {
       validTrack = validIndex >= 0 ? validQueue[validIndex] : null;
     }
 
-    return {
+    const validVolume =
+      typeof parsed.volume === "number" && Number.isFinite(parsed.volume)
+        ? Math.max(0, Math.min(1, parsed.volume))
+        : 0.7;
+
+    cachedState = {
       ...DEFAULT_STATE,
       ...parsed,
+      volume: validVolume,
       queue: validQueue,
       currentTrack: validTrack,
       currentIndex: validIndex,
@@ -103,9 +122,11 @@ export function loadMusixState() {
         ...(parsed.settings || {}),
       },
     };
+
+    return cachedState;
   } catch (err) {
-    console.error("Failed to load musix state:", err);
-    return DEFAULT_STATE;
+    cachedState = { ...DEFAULT_STATE };
+    return cachedState;
   }
 }
 
@@ -126,8 +147,33 @@ export function saveMusixState(partialState) {
       currentTrack: sanitizedTrack,
     };
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(safeToSave));
-  } catch (err) {
-    console.error("Failed to save musix state:", err);
-  }
+    cachedState = safeToSave;
+
+    if (typeof localStorage !== "undefined") {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(safeToSave));
+      } catch (quotaError) {
+        try {
+          const strippedQueue = sanitizedQueue.map((s) => ({
+            ...s,
+            metadata: s.metadata ? { ...s.metadata, cover_art: null } : null,
+          }));
+          const strippedTrack = sanitizedTrack
+            ? {
+                ...sanitizedTrack,
+                metadata: sanitizedTrack.metadata
+                  ? { ...sanitizedTrack.metadata, cover_art: null }
+                  : null,
+              }
+            : null;
+          const minimalState = {
+            ...safeToSave,
+            queue: strippedQueue,
+            currentTrack: strippedTrack,
+          };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(minimalState));
+        } catch (e) {}
+      }
+    }
+  } catch (err) {}
 }

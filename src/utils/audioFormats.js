@@ -18,10 +18,14 @@ export function isAudioFile(filenameOrPath) {
 }
 
 export function getCleanTitle(filepath, metaTitle) {
-  if (metaTitle && metaTitle.trim()) return metaTitle.trim();
-  if (!filepath) return "Musix";
+  if (metaTitle && typeof metaTitle === "string" && metaTitle.trim()) {
+    return metaTitle.trim();
+  }
+  if (!filepath || typeof filepath !== "string") return "Musix";
   const filename = filepath.split(/[/\\]/).pop() || "";
+  const dotIndex = filename.lastIndexOf(".");
   const nameWithoutExt =
-    filename.substring(0, filename.lastIndexOf(".")) || filename;
-  return nameWithoutExt.replace(/[_-]/g, " ").trim();
+    dotIndex > 0 ? filename.substring(0, dotIndex) : filename;
+  const cleaned = nameWithoutExt.replace(/[_-]/g, " ").trim();
+  return cleaned || "Musix";
 }

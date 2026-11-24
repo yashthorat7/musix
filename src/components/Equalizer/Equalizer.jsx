@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useEffect } from "react";
 import styles from "./Equalizer.module.css";
 import { useAudio } from "../../context/AudioContext";
 
@@ -7,16 +7,22 @@ const EQ_BANDS = ["bass", "mids", "treble", "air"];
 function Equalizer({ isOpen }) {
   const { equalizer } = useAudio();
   const { levels, setLevel, resetLevels } = equalizer;
-  const isDragging = useRef(null);
+  const activeSliderRef = useRef(null);
+  const cleanupRef = useRef(null);
 
-  const updateLevel = (name, clientY) => {
-    const container = document.querySelector(`[data-slider="${name}"]`);
-    if (!container) return;
+  useEffect(() => {
+    return () => {
+      if (cleanupRef.current) {
+        cleanupRef.current();
+      }
+    };
+  }, []);
 
-    const rect = container.getBoundingClientRect();
-    const clickPosition = clientY - rect.top;
-    const sliderHeight = rect.height;
-    let percentage = 1 - clickPosition / sliderHeight;
+  const calculateAndSet = (clientY) => {
+    if (!activeSliderRef.current) return;
+    const { name, top, height } = activeSliderRef.current;
+    const clickPosition = clientY - top;
+    let percentage = 1 - clickPosition / height;
 
     percentage = Math.max(0, Math.min(percentage, 1));
     if (percentage <= 0.01) percentage = 0;
@@ -27,21 +33,34 @@ function Equalizer({ isOpen }) {
 
   const handleMouseDown = (e, name) => {
     e.stopPropagation();
-    isDragging.current = name;
-    updateLevel(name, e.clientY);
+    if (cleanupRef.current) {
+      cleanupRef.current();
+    }
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    activeSliderRef.current = { name, top: rect.top, height: rect.height };
+    calculateAndSet(e.clientY);
 
     const handleMouseMove = (moveEvent) => {
-      if (isDragging.current) {
-        updateLevel(isDragging.current, moveEvent.clientY);
+      if (activeSliderRef.current) {
+        calculateAndSet(moveEvent.clientY);
       }
     };
 
     const handleMouseUp = () => {
-      isDragging.current = null;
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
+      if (cleanupRef.current) {
+        cleanupRef.current();
+      }
     };
 
+    const cleanup = () => {
+      activeSliderRef.current = null;
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+      cleanupRef.current = null;
+    };
+
+    cleanupRef.current = cleanup;
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
   };
@@ -85,7 +104,11 @@ function Equalizer({ isOpen }) {
         type="button"
         data-no-window-drag
       >
-        <img src="/icons/reset.svg" alt="" />
+        <img
+          src="/icons/reset.svg"
+          alt=""
+          onError={(e) => (e.currentTarget.style.display = "none")}
+        />
       </button>
     </div>
   );

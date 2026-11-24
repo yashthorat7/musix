@@ -8,8 +8,18 @@ function Minimizer({ onMinimize }) {
   };
 
   return (
-    <button className={styles.container} onClick={handleClick} type="button">
-      <img src="icons/minimizer.svg" alt="" />
+    <button
+      className={styles.container}
+      onClick={handleClick}
+      type="button"
+      title="Mini"
+      aria-label="Switch to mini view"
+    >
+      <img
+        src="/icons/minimizer.svg"
+        alt=""
+        onError={(e) => (e.currentTarget.style.display = "none")}
+      />
     </button>
   );
 }

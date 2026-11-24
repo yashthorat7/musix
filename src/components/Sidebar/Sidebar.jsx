@@ -6,11 +6,13 @@ import { useAudio } from "../../context/AudioContext";
 function Sidebar({ activePanel, onPanelChange }) {
   const { volume, setVolume } = useAudio();
   const [isDragging, setIsDragging] = useState(false);
+  const [hoveredPanel, setHoveredPanel] = useState(null);
   const sliderRef = useRef(null);
 
   const updateVolume = (clientY) => {
     if (!sliderRef.current) return;
     const rect = sliderRef.current.getBoundingClientRect();
+    if (rect.height <= 0) return;
     const clickPosition = clientY - rect.top;
     const sliderHeight = rect.height;
     let volumePercentage = 1 - clickPosition / sliderHeight;
@@ -58,6 +60,8 @@ function Sidebar({ activePanel, onPanelChange }) {
   const isPanelActive =
     activePanel === "directory" || activePanel === "equalizer";
 
+  const activeRedButton = hoveredPanel || activePanel;
+
   return (
     <div className={styles.container}>
       {isPanelActive && (
@@ -66,33 +70,61 @@ function Sidebar({ activePanel, onPanelChange }) {
             className={styles.backButton}
             onClick={() => onPanelChange(null)}
             type="button"
+            aria-label="Back"
           >
-            <img src="/icons/back.svg" alt="" />
+            <img
+              src="/icons/back.svg"
+              alt=""
+              onError={(e) => (e.currentTarget.style.display = "none")}
+            />
           </button>
           <button
             className={styles.githubNavButton}
-            onClick={() => openUrl("https://github.com/yashthorat7")}
+            onClick={() => openUrl("https://github.com/yashthorat7/musix")}
             type="button"
+            aria-label="GitHub Profile"
           >
-            <img src="/icons/github.svg" alt="" />
+            <img
+              src="/icons/github.svg"
+              alt=""
+              onError={(e) => (e.currentTarget.style.display = "none")}
+            />
           </button>
         </div>
       )}
 
-      <div className={styles.tray} data-no-window-drag>
+      <div
+        className={styles.tray}
+        data-no-window-drag
+        onMouseLeave={() => setHoveredPanel(null)}
+      >
         <button
-          className={`${styles.iconButton} ${activePanel === "directory" ? styles.active : ""}`}
+          className={`${styles.iconButton} ${activeRedButton === "directory" ? styles.active : ""}`}
           onClick={() => handlePanelClick("directory")}
+          onMouseEnter={() => setHoveredPanel("directory")}
+          onMouseLeave={() => setHoveredPanel(null)}
           type="button"
+          aria-label="Queue Directory"
         >
-          <img src="/icons/directory.svg" alt="" />
+          <img
+            src="/icons/directory.svg"
+            alt=""
+            onError={(e) => (e.currentTarget.style.display = "none")}
+          />
         </button>
         <button
-          className={`${styles.iconButton} ${activePanel === "equalizer" ? styles.active : ""}`}
+          className={`${styles.iconButton} ${activeRedButton === "equalizer" ? styles.active : ""}`}
           onClick={() => handlePanelClick("equalizer")}
+          onMouseEnter={() => setHoveredPanel("equalizer")}
+          onMouseLeave={() => setHoveredPanel(null)}
           type="button"
+          aria-label="Equalizer"
         >
-          <img src="/icons/equalizer.svg" alt="" />
+          <img
+            src="/icons/equalizer.svg"
+            alt=""
+            onError={(e) => (e.currentTarget.style.display = "none")}
+          />
         </button>
 
         <div

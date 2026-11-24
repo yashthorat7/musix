@@ -6,9 +6,9 @@ export function useMetadata() {
 
   const extractMetadata = useCallback(async (path) => {
     try {
-      const metadata = await invoke("extract_metadata", { filepath: path });
-      setMetadata(metadata);
-      return metadata;
+      const result = await invoke("extract_metadata", { filepath: path });
+      setMetadata(result);
+      return result;
     } catch (error) {
       return null;
     }

@@ -18,7 +18,12 @@ function Splash({ children }) {
         onClick={() => setIsSplash(false)}
         style={{ cursor: "pointer" }}
       >
-        <img src="/images/logo.png" alt="Logo" className={styles.logo} />
+        <img
+          src="/images/logo.png"
+          alt="Logo"
+          className={styles.logo}
+          onError={(e) => (e.currentTarget.style.display = "none")}
+        />
         <p className={styles.credit}>YASH THORAT</p>
       </div>
     );

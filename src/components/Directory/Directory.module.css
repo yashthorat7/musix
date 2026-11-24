@@ -92,20 +92,91 @@
   padding: 8px 0;
   border-bottom: 1px solid #e0e0e0;
   position: relative;
+  transition: opacity 0.15s ease;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+
+.songItem:active {
+  cursor: grabbing;
+}
+
+.dragging {
+  opacity: 0.35;
+}
+
+.dropIndicatorTop {
+  position: absolute;
+  top: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: #ff5353;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.dropIndicatorBottom {
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: #ff5353;
+  z-index: 20;
+  pointer-events: none;
 }
 
 .songTitle {
   flex: 1;
+  min-width: 0;
   font-size: 12px;
+  overflow: hidden;
+  white-space: nowrap;
+  color: #333;
+  padding-right: 8px;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+
+.songTitle:hover,
+.songItem:hover .songTitle {
+  color: #ff5353;
+}
+
+.staticTitle {
+  width: 100%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #333;
-  padding-right: 8px;
 }
 
-.songTitle:hover {
-  color: #ff5353;
+.marqueeTrack {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  flex-shrink: 0;
+  animation-name: directoryMarquee;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  transform: translateZ(0);
+}
+
+.marqueeText {
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-right: 36px;
+}
+
+@keyframes directoryMarquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
 }
 
 .removeButton {
@@ -118,6 +189,8 @@
   justify-content: center;
   align-items: center;
   border-radius: 50%;
+  position: relative;
+  z-index: 5;
 }
 
 .removeButton:hover {
@@ -126,16 +199,10 @@
 }
 
 .currentSong {
-  background-color: #f0f0f0;
   border-radius: 4px;
 }
 
 .currentSong .songTitle {
   color: #ff5353;
   font-weight: 500;
-}
-
-.dragActive {
-  background: #ffeaea;
-  border: 2px dashed #ff5353;
 }
