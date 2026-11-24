@@ -5,5 +5,34 @@
   justify-content: center;
   align-items: center;
   overflow: hidden;
-  background: rgb(255, 255, 255);
+  background: transparent;
+  position: relative;
+}
+
+.peripheral {
+  position: absolute;
+  inset: 0;
+  width: 256px;
+  height: 256px;
+  pointer-events: auto;
+  opacity: 1;
+}
+
+.peripheral.fadeOut {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+
+.peripheral.fadeIn {
+  animation: fadeInPeripheral 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeInPeripheral {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
 }

@@ -217,14 +217,15 @@ fn reposition_window(window: tauri::Window) {
 
 #[tauri::command]
 fn set_window_position(window: tauri::Window, x: i32, y: i32) {
+    let win_size = window.outer_size().unwrap_or(tauri::PhysicalSize::new(256, 256));
     if let Ok(monitors) = window.available_monitors() {
         let is_valid = monitors.iter().any(|m| {
             let m_pos = m.position();
             let m_size = m.size();
-            x >= m_pos.x - 50
-                && x < m_pos.x + m_size.width as i32
-                && y >= m_pos.y - 50
-                && y < m_pos.y + m_size.height as i32
+            x >= m_pos.x
+                && (x + win_size.width as i32) <= (m_pos.x + m_size.width as i32)
+                && y >= m_pos.y
+                && (y + win_size.height as i32) <= (m_pos.y + m_size.height as i32)
         });
         if is_valid {
             let _ = window.set_position(tauri::PhysicalPosition::new(x, y));
@@ -257,6 +258,22 @@ fn get_cli_args() -> Vec<String> {
     std::env::args().skip(1).collect()
 }
 
+#[tauri::command]
+async fn select_audio_files() -> Result<Vec<String>, String> {
+    let files = rfd::AsyncFileDialog::new()
+        .add_filter("Audio Files", &["mp3", "wav", "flac", "ogg", "m4a", "aac", "opus", "wma"])
+        .pick_files()
+        .await;
+
+    match files {
+        Some(handles) => Ok(handles
+            .into_iter()
+            .map(|h| h.path().to_string_lossy().into_owned())
+            .collect()),
+        None => Ok(Vec::new()),
+    }
+}
+
 fn toggle_or_show_window(app: &tauri::AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
         let is_visible = window.is_visible().unwrap_or(false);
@@ -275,8 +292,13 @@ fn toggle_or_show_window(app: &tauri::AppHandle) {
 
 #[cfg(windows)]
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    SetWindowPos, SWP_NOACTIVATE, SWP_NOOWNERZORDER, SWP_NOZORDER,
+    SetWindowPos, SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOOWNERZORDER, SWP_NOZORDER,
 };
+
+#[tauri::command]
+fn start_dragging(window: tauri::Window) -> Result<(), String> {
+    window.start_dragging().map_err(|e| e.to_string())
+}
 
 #[tauri::command]
 async fn resize_window_keep_anchor(
@@ -297,69 +319,37 @@ async fn resize_window_keep_anchor(
     let anchor_y = current_pos.y + current_size.height as i32;
 
     if (start_phys_w - target_phys_w).abs() < 2.0 && (start_phys_h - target_phys_h).abs() < 2.0 {
-        let _ = window.set_size(tauri::LogicalSize::new(target_width, target_height));
         return Ok(());
-    }
-
-    #[cfg(windows)]
-    let hwnd_opt = window.hwnd().ok();
-
-    let total_steps = 18;
-    let step_duration = std::time::Duration::from_millis(12);
-
-    for step in 1..=total_steps {
-        let t = step as f64 / total_steps as f64;
-        let progress = if t < 0.5 {
-            4.0 * t * t * t
-        } else {
-            1.0 - (-2.0 * t + 2.0).powi(3) / 2.0
-        };
-
-        let cur_phys_w = (start_phys_w + (target_phys_w - start_phys_w) * progress).round() as i32;
-        let cur_phys_h = (start_phys_h + (target_phys_h - start_phys_h) * progress).round() as i32;
-        let mut cur_x = anchor_x - cur_phys_w;
-        let mut cur_y = anchor_y - cur_phys_h;
-
-        if cur_x < 0 {
-            cur_x = 0;
-        }
-        if cur_y < 0 {
-            cur_y = 0;
-        }
-
-        #[cfg(windows)]
-        {
-            if let Some(hwnd) = hwnd_opt {
-                unsafe {
-                    SetWindowPos(
-                        hwnd.0 as _,
-                        0 as _,
-                        cur_x,
-                        cur_y,
-                        cur_phys_w,
-                        cur_phys_h,
-                        SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOOWNERZORDER,
-                    );
-                }
-            } else {
-                let _ = window.set_size(tauri::PhysicalSize::new(cur_phys_w as u32, cur_phys_h as u32));
-                let _ = window.set_position(tauri::PhysicalPosition::new(cur_x, cur_y));
-            }
-        }
-
-        #[cfg(not(windows))]
-        {
-            let _ = window.set_size(tauri::PhysicalSize::new(cur_phys_w as u32, cur_phys_h as u32));
-            let _ = window.set_position(tauri::PhysicalPosition::new(cur_x, cur_y));
-        }
-
-        std::thread::sleep(step_duration);
     }
 
     let final_x = anchor_x - target_phys_w as i32;
     let final_y = anchor_y - target_phys_h as i32;
-    let _ = window.set_size(tauri::LogicalSize::new(target_width, target_height));
-    let _ = window.set_position(tauri::PhysicalPosition::new(final_x.max(0), final_y.max(0)));
+
+    #[cfg(windows)]
+    {
+        if let Ok(hwnd) = window.hwnd() {
+            unsafe {
+                SetWindowPos(
+                    hwnd.0 as _,
+                    0 as _,
+                    final_x.max(0),
+                    final_y.max(0),
+                    target_phys_w as i32,
+                    target_phys_h as i32,
+                    SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOCOPYBITS,
+                );
+            }
+        } else {
+            let _ = window.set_size(tauri::PhysicalSize::new(target_phys_w as u32, target_phys_h as u32));
+            let _ = window.set_position(tauri::PhysicalPosition::new(final_x.max(0), final_y.max(0)));
+        }
+    }
+
+    #[cfg(not(windows))]
+    {
+        let _ = window.set_size(tauri::PhysicalSize::new(target_phys_w as u32, target_phys_h as u32));
+        let _ = window.set_position(tauri::PhysicalPosition::new(final_x.max(0), final_y.max(0)));
+    }
 
     Ok(())
 }
@@ -367,6 +357,14 @@ async fn resize_window_keep_anchor(
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.unminimize();
+                let _ = window.set_focus();
+            }
+            let _ = app.emit("single-instance-args", argv);
+        }))
         .plugin(tauri_plugin_positioner::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_autostart::init(
@@ -378,10 +376,10 @@ pub fn run() {
                 .with_handler(|app, shortcut, event| {
                     if event.state() == ShortcutState::Pressed {
                         let shortcut_str = shortcut.to_string().to_lowercase();
-                        if (shortcut_str.contains("ctrl") || shortcut_str.contains("control"))
-                            && shortcut_str.contains("alt")
-                            && shortcut_str.contains("m")
-                        {
+                        let is_toggle = shortcut_str.contains("m")
+                            && ((shortcut_str.contains("alt") && shortcut_str.contains("shift"))
+                                || ((shortcut_str.contains("ctrl") || shortcut_str.contains("control")) && shortcut_str.contains("alt")));
+                        if is_toggle {
                             toggle_or_show_window(app);
                         } else if shortcut_str.contains("mediaplaypause") {
                             let _ = app.emit("shortcut-play-pause", ());
@@ -397,6 +395,7 @@ pub fn run() {
         .setup(|app| {
             let is_autostart = std::env::args().any(|arg| arg == "--autostart");
             if let Some(window) = app.get_webview_window("main") {
+                let _ = window.set_skip_taskbar(true);
                 if is_autostart {
                     let _ = window.hide();
                 } else {
@@ -413,7 +412,13 @@ pub fn run() {
                 }
             }
 
-            let shortcuts = ["Ctrl+Alt+M", "MediaPlayPause", "MediaTrackNext", "MediaTrackPrevious"];
+            let shortcuts = [
+                "Alt+Shift+M",
+                "Ctrl+Alt+M",
+                "MediaPlayPause",
+                "MediaTrackNext",
+                "MediaTrackPrevious",
+            ];
             for s in shortcuts {
                 if let Ok(sc) = s.parse::<Shortcut>() {
                     let _ = app.global_shortcut().register(sc);
@@ -445,6 +450,7 @@ pub fn run() {
                         let _ = app.emit("shortcut-prev", ());
                     }
                     "quit" => {
+                        let _ = app.emit("app-quit", ());
                         app.exit(0);
                     }
                     _ => {}
@@ -469,6 +475,13 @@ pub fn run() {
 
             Ok(())
         })
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                api.prevent_close();
+                let _ = window.emit("window-close-requested", ());
+                let _ = window.hide();
+            }
+        })
         .invoke_handler(tauri::generate_handler![
             extract_metadata,
             get_file_url,
@@ -477,7 +490,9 @@ pub fn run() {
             set_window_position,
             show_main_window,
             toggle_window_visibility,
-            get_cli_args
+            get_cli_args,
+            select_audio_files,
+            start_dragging
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

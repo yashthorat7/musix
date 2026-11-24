@@ -1,10 +1,17 @@
 .progressContainer {
   position: absolute;
-  bottom: 5px;
+  bottom: 4px;
   left: 50%;
   transform: translateX(-50%);
-  height: 4px;
-  width: 68px;
+  height: 12px;
+  width: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  z-index: 10;
 }
 
 .progressBar {
@@ -15,6 +22,7 @@
   border-radius: 2px;
   position: relative;
   overflow: hidden;
+  pointer-events: none;
 }
 
 .progressFill {
@@ -24,4 +32,5 @@
   position: absolute;
   left: 0;
   top: 0;
+  pointer-events: none;
 }

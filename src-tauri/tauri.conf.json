@@ -23,7 +23,8 @@
         "fullscreen": false,
         "maximizable": false,
         "shadow": false,
-        "dragDropEnabled": true
+        "dragDropEnabled": true,
+        "skipTaskbar": true
       }
     ],
     "security": {

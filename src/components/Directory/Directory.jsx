@@ -1,84 +1,48 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useEffect } from "react";
 import styles from "./Directory.module.css";
+import { invoke } from "@tauri-apps/api/core";
 import { useAudio } from "../../context/AudioContext";
-import { isAudioFile, ACCEPT_AUDIO_STRING } from "../../utils/audioFormats";
 
 function Directory({
   isOpen,
   songs = [],
+  currentIndex = -1,
   onRemove,
   onClear,
   onShuffle,
   onSelectSong,
 }) {
-  const fileInputRef = useRef(null);
+  const currentSongRef = useRef(null);
   const { processSongs } = useAudio();
-  const [dragActive, setDragActive] = useState(false);
 
-  const handleAddClick = () => {
-    fileInputRef.current?.click();
-  };
+  useEffect(() => {
+    if (isOpen && currentSongRef.current) {
+      currentSongRef.current.scrollIntoView({
+        block: "nearest",
+        behavior: "smooth",
+      });
+    }
+  }, [isOpen, currentIndex]);
 
-  const handleFileSelect = async (e) => {
+  const handleAddClick = async () => {
     try {
-      const files = Array.from(e.target.files || [])
-        .filter((file) => isAudioFile(file.name))
-        .map((file) => file.path || file.webkitRelativePath || file.name);
-
-      if (files.length > 0) {
-        await processSongs(files);
+      const selected = await invoke("select_audio_files");
+      if (selected && selected.length > 0) {
+        await processSongs(selected);
       }
     } catch (error) {
       console.error("Error selecting files:", error);
-    } finally {
-      if (e.target) {
-        e.target.value = "";
-      }
-    }
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(true);
-  };
-
-  const handleDragLeave = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-  };
-
-  const handleDrop = async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-
-    try {
-      const files = Array.from(e.dataTransfer?.files || [])
-        .filter((file) => isAudioFile(file.name))
-        .map((file) => file.path);
-
-      if (files.length > 0) {
-        await processSongs(files);
-      }
-    } catch (error) {
-      console.error("Error handling dropped files:", error);
     }
   };
 
   return (
-    <div
-      className={`${styles.container} ${isOpen ? styles.open : ""} ${dragActive ? styles.dragActive : ""}`}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-    >
+    <div className={`${styles.container} ${isOpen ? styles.open : ""}`}>
       <div className={styles.songList}>
         {songs.length === 0 ? (
           <div className={styles.emptyMessage}>No songs in queue</div>
         ) : (
           songs.map((song, index) => {
+            const isCurrent = index === currentIndex;
             const displayName =
               song.metadata?.title ||
               song.fileName ||
@@ -87,7 +51,8 @@ function Directory({
             return (
               <div
                 key={`${song.path}-${index}`}
-                className={`${styles.songItem} ${index === 0 ? styles.currentSong : ""}`}
+                ref={isCurrent ? currentSongRef : null}
+                className={`${styles.songItem} ${isCurrent ? styles.currentSong : ""}`}
               >
                 <div
                   className={styles.songTitle}
@@ -127,14 +92,6 @@ function Directory({
           >
             <img src="/icons/add.svg" alt="" />
           </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept={ACCEPT_AUDIO_STRING}
-            multiple
-            onChange={handleFileSelect}
-            style={{ display: "none" }}
-          />
         </div>
       </div>
     </div>

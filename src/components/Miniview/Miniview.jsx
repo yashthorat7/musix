@@ -1,5 +1,6 @@
-import React, { useRef } from "react";
+import React, { useRef, useEffect } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { invoke } from "@tauri-apps/api/core";
 import styles from "./Miniview.module.css";
 import MiniDisc from "./MiniDisc";
 import MiniProgressBar from "./MiniProgressBar";
@@ -7,37 +8,77 @@ import { useAudio } from "../../context/AudioContext";
 
 function Miniview({ onRestore, isPreview = false }) {
   const { metadata } = useAudio();
-  const dragStartPos = useRef(null);
+  const dragCleanupRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (dragCleanupRef.current) {
+        dragCleanupRef.current();
+      }
+    };
+  }, []);
 
   const handleMouseDown = (e) => {
     if (isPreview) return;
-    if (e.button === 0) {
-      dragStartPos.current = { x: e.screenX, y: e.screenY };
-      try {
-        getCurrentWindow().startDragging();
-      } catch (err) {}
-    }
-  };
+    if (e.target.closest("button, input, a, [data-no-window-drag]")) return;
+    if (e.button !== 0) return;
 
-  const handleRestore = (e) => {
-    if (isPreview) return;
-    if (dragStartPos.current) {
+    if (dragCleanupRef.current) {
+      dragCleanupRef.current();
+    }
+
+    const startX = e.screenX;
+    const startY = e.screenY;
+    let hasStartedDrag = false;
+
+    const onMouseMove = (moveEvent) => {
+      if (hasStartedDrag) return;
       const dist = Math.hypot(
-        e.screenX - dragStartPos.current.x,
-        e.screenY - dragStartPos.current.y,
+        moveEvent.screenX - startX,
+        moveEvent.screenY - startY,
       );
-      if (dist > 6) return;
-    }
+      if (dist > 5) {
+        hasStartedDrag = true;
+        cleanup();
+        try {
+          invoke("start_dragging");
+        } catch (err) {
+          try {
+            getCurrentWindow().startDragging();
+          } catch (e2) {}
+        }
+      }
+    };
 
-    if (onRestore) onRestore();
+    const onMouseUp = (upEvent) => {
+      cleanup();
+      if (!hasStartedDrag) {
+        const dist = Math.hypot(
+          upEvent.screenX - startX,
+          upEvent.screenY - startY,
+        );
+        if (dist <= 5) {
+          if (onRestore) onRestore();
+        }
+      }
+    };
+
+    const cleanup = () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+      dragCleanupRef.current = null;
+    };
+
+    dragCleanupRef.current = cleanup;
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
   };
 
   return (
     <div
       className={styles.container}
-      data-tauri-drag-region
       onMouseDown={handleMouseDown}
-      onClick={handleRestore}
+      title="Expand"
     >
       <MiniDisc coverArt={metadata?.cover_art} />
       <MiniProgressBar />

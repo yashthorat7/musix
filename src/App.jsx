@@ -12,8 +12,14 @@ import { invoke } from "@tauri-apps/api/core";
 
 function App() {
   const [activePanel, setActivePanel] = useState(null);
-  const { queue, removeSong, clearQueue, shuffleQueue, playSongAtIndex } =
-    useAudio();
+  const {
+    queue,
+    currentIndex,
+    removeSong,
+    clearQueue,
+    shuffleQueue,
+    playSongAtIndex,
+  } = useAudio();
   const [viewMode, setViewMode] = useState("full");
   const isTransitioning = useRef(false);
 
@@ -24,7 +30,10 @@ function App() {
   const handleShowMiniview = async () => {
     if (isTransitioning.current || viewMode !== "full") return;
     isTransitioning.current = true;
+    setActivePanel(null);
     setViewMode("minimizing");
+
+    await new Promise((resolve) => setTimeout(resolve, 230));
 
     try {
       await invoke("resize_window_keep_anchor", {
@@ -46,7 +55,6 @@ function App() {
   const handleRestoreMain = async () => {
     if (isTransitioning.current || viewMode !== "miniview") return;
     isTransitioning.current = true;
-    setViewMode("maximizing");
 
     try {
       await invoke("resize_window_keep_anchor", {
@@ -59,74 +67,83 @@ function App() {
         await win.setSize(new LogicalSize(256, 256));
         await invoke("reposition_window");
       } catch (err) {}
-    } finally {
-      setViewMode("full");
-      isTransitioning.current = false;
     }
+
+    setViewMode("maximizing");
+
+    await new Promise((resolve) => setTimeout(resolve, 230));
+
+    setViewMode("full");
+    isTransitioning.current = false;
   };
 
   const handleDragMouseDown = (e) => {
+    if (viewMode === "miniview") return;
     if (
       e.button === 0 &&
-      !e.target.closest("button, input, [data-slider], [data-no-drag], a")
+      !e.target.closest(
+        "button, input, [data-slider], a, [data-no-window-drag]",
+      )
     ) {
       try {
-        getCurrentWindow().startDragging();
-      } catch (err) {}
+        invoke("start_dragging");
+      } catch (err) {
+        try {
+          getCurrentWindow().startDragging();
+        } catch (e2) {}
+      }
     }
   };
 
   const isMini = viewMode === "miniview";
-  const containerClasses = ["container", isMini ? "miniviewContainer" : ""]
-    .filter(Boolean)
-    .join(" ");
 
-  const wrapperClasses = [
-    "viewWrapper",
+  const cardClasses = [
+    "card",
     viewMode === "minimizing" ? "minimizing" : "",
     viewMode === "maximizing" ? "maximizing" : "",
   ]
     .filter(Boolean)
     .join(" ");
 
+  const sidebarClasses = [
+    "sidebarWrapper",
+    viewMode === "minimizing"
+      ? "fadeOut"
+      : viewMode === "maximizing"
+        ? "fadeIn"
+        : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
     <main
-      className={containerClasses}
-      data-tauri-drag-region
+      className={`appContainer ${isMini ? "miniviewContainer" : ""}`}
       onMouseDown={handleDragMouseDown}
     >
       <Splash>
         {isMini ? (
           <Miniview onRestore={handleRestoreMain} />
         ) : (
-          <>
-            <div className={wrapperClasses}>
-              <Player onMinimize={handleShowMiniview} />
-              <Directory
-                isOpen={activePanel === "directory"}
-                songs={queue}
-                onRemove={handleRemoveSong}
-                onClear={clearQueue}
-                onShuffle={shuffleQueue}
-                onSelectSong={playSongAtIndex}
-              />
-              <Equalizer isOpen={activePanel === "equalizer"} />
+          <div className={cardClasses}>
+            <Player onMinimize={handleShowMiniview} viewMode={viewMode} />
+            <Directory
+              isOpen={activePanel === "directory"}
+              songs={queue}
+              currentIndex={currentIndex}
+              onRemove={handleRemoveSong}
+              onClear={clearQueue}
+              onShuffle={shuffleQueue}
+              onSelectSong={playSongAtIndex}
+            />
+            <Equalizer isOpen={activePanel === "equalizer"} />
+            <div className={sidebarClasses}>
               <Sidebar
                 activePanel={activePanel}
                 onPanelChange={setActivePanel}
               />
             </div>
-            {viewMode === "minimizing" && (
-              <div className="miniviewTransitionWrapper minimizing">
-                <Miniview isPreview />
-              </div>
-            )}
-            {viewMode === "maximizing" && (
-              <div className="miniviewTransitionWrapper maximizing">
-                <Miniview isPreview />
-              </div>
-            )}
-          </>
+          </div>
         )}
       </Splash>
     </main>

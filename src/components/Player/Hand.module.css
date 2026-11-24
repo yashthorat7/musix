@@ -7,6 +7,14 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  transform-origin: 39px 5px;
+  transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.handWrapper.paused {
+  transform: rotate(-3deg);
 }
 
 .hand {
@@ -63,13 +71,4 @@
   height: 8px;
   border-radius: 50%;
   background-color: #ffffff;
-}
-
-@keyframes swing {
-  0% {
-    transform: rotate(0deg) translate(0px, 0px);
-  }
-  100% {
-    transform: rotate(3deg) translate(-3px, 0px);
-  }
 }

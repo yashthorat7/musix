@@ -6,7 +6,6 @@
   top: 10px;
   left: 50%;
   transform: translateX(-50%);
-  -webkit-app-region: drag;
 }
 
 .marquee {

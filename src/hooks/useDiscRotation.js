@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef } from "react";
 
 const gradientVariants = [
   {
@@ -75,12 +75,22 @@ const gradientVariants = [
   },
 ];
 
-export function useDiscRotation(currentTime, isPlaying, isSeeking, coverArt) {
-  const [rotation, setRotation] = useState(0);
-  const [isPauseSnap, setIsPauseSnap] = useState(false);
+const SECONDS_PER_REV = 20;
+
+export function useDiscRotation(
+  currentTime,
+  isPlaying,
+  isSeeking,
+  coverArt,
+  discRef,
+) {
   const gradientRef = useRef(
     gradientVariants[Math.floor(Math.random() * gradientVariants.length)],
   );
+
+  const rotRef = useRef(((Number(currentTime) || 0) / SECONDS_PER_REV) * 360);
+  const baseTimeRef = useRef(Number(currentTime) || 0);
+  const baseStampRef = useRef(performance.now());
 
   const randomizeGradient = () => {
     gradientRef.current =
@@ -92,51 +102,61 @@ export function useDiscRotation(currentTime, isPlaying, isSeeking, coverArt) {
   }, [coverArt]);
 
   useEffect(() => {
-    if (!isPlaying && !isPauseSnap) {
-      setIsPauseSnap(true);
-      setTimeout(() => setIsPauseSnap(false), 50);
+    const time = Number(currentTime) || 0;
+    baseTimeRef.current = time;
+    baseStampRef.current = performance.now();
+    const rot = (time / SECONDS_PER_REV) * 360;
+    rotRef.current = rot;
+    if (discRef?.current) {
+      discRef.current.style.transform = `rotate(${rot}deg)`;
     }
-  }, [isPlaying]);
+  }, [currentTime, discRef]);
 
   useEffect(() => {
-    setRotation((currentTime / 25) * 360);
-  }, [currentTime]);
+    if (!isPlaying || isSeeking) {
+      if (discRef?.current) {
+        discRef.current.style.transform = `rotate(${rotRef.current}deg)`;
+      }
+      return;
+    }
 
-  useEffect(() => {
-    let animationFrameId;
+    baseTimeRef.current = Number(currentTime) || 0;
+    baseStampRef.current = performance.now();
+    let animId;
 
-    const updateRotation = () => {
-      setRotation((currentTime / 25) * 360);
-      animationFrameId = requestAnimationFrame(updateRotation);
+    const tick = () => {
+      const now = performance.now();
+      const elapsed = (now - baseStampRef.current) / 1000;
+      const estimatedTime = baseTimeRef.current + elapsed;
+      const rot = (estimatedTime / SECONDS_PER_REV) * 360;
+      rotRef.current = rot;
+      if (discRef?.current) {
+        discRef.current.style.transform = `rotate(${rot}deg)`;
+      }
+      animId = requestAnimationFrame(tick);
     };
 
-    if (isPlaying && !isSeeking) {
-      updateRotation();
-    } else {
-      cancelAnimationFrame(animationFrameId);
-    }
+    animId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(animId);
+  }, [isPlaying, isSeeking, discRef]);
 
-    return () => cancelAnimationFrame(animationFrameId);
-  }, [currentTime, isPlaying, isSeeking]);
-
-  const getDiscStyle = (coverArt) => {
+  const getDiscStyle = (customCover) => {
+    const activeCover = customCover || coverArt;
     const gradientBackground = `radial-gradient(circle at top left, ${gradientRef.current.topLeft}, transparent 70%),
                 radial-gradient(circle at top right, ${gradientRef.current.topRight}, transparent 70%),
                 radial-gradient(circle at bottom left, ${gradientRef.current.bottomLeft}, transparent 70%),
                 radial-gradient(circle at bottom right, ${gradientRef.current.bottomRight}, transparent 70%)`;
 
     return {
-      backgroundImage: coverArt
-        ? `url("${coverArt}"), ${gradientBackground}`
+      backgroundImage: activeCover
+        ? `url("${activeCover}"), ${gradientBackground}`
         : gradientBackground,
       backgroundSize: "cover",
       backgroundPosition: "center",
-      transform: `rotate(${rotation}deg)`,
-      transition: isPauseSnap
-        ? "transform 10s ease-out"
-        : "transform 0.4s ease-out",
+      transform: `rotate(${rotRef.current}deg)`,
+      willChange: "transform",
     };
   };
 
-  return { rotation, getDiscStyle, randomizeGradient };
+  return { rotation: rotRef.current, getDiscStyle, randomizeGradient };
 }

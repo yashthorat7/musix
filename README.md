@@ -25,7 +25,7 @@
   - Automatically remembers your **queue & playlist** across launches.
   - Restores your **currently playing song** and exact **seek timestamp**.
   - Persists your customized **volume level** and **audio equalizer levels**.
-- ⌨️ **Windows Global Shortcut (`Ctrl+Alt+M`)**:
+- ⌨️ **Windows Global Shortcut (`Alt+Shift+M` or `Ctrl+Alt+M`)**:
   - Summon, focus, or toggle the music player from anywhere in Windows — even while inside full-screen games, code editors, or browser tabs.
   - Full hardware **Media Key support** (`Play/Pause`, `Next Track`, `Previous Track`).
 - 🎛️ **Real Web Audio Equalizer**:
@@ -38,8 +38,8 @@
 - 🎵 **Multi-Format Audio Support**:
   - Plays `.mp3`, `.wav`, `.flac`, `.ogg`, `.m4a`, `.aac`, `.opus`, and `.wma`.
   - Automatic ID3v2 and native audio tag metadata parser with embedded album artwork extraction.
-- 🪟 **System Tray Companion**:
-  - Lives in your Windows system tray.
+- 🪟 **System Tray Companion (Taskbar-Free)**:
+  - Lives cleanly in your Windows system tray without cluttering the taskbar.
   - Left-click tray icon to instantly toggle/summon the player.
   - Right-click tray menu for quick Play/Pause, Track Skip, and Exit.
 - 📂 **Interactive Queue & Directory**:
@@ -58,20 +58,20 @@
 
 ## ⌨️ Windows Global & In-App Shortcuts
 
-| Scope      | Shortcut             | Action                                                     |
-| :--------- | :------------------- | :--------------------------------------------------------- |
-| **Global** | `Ctrl + Alt + M`     | **Summon / Focus / Toggle Musix** from anywhere in Windows |
-| **Global** | `MediaPlayPause`     | Play / Pause current track                                 |
-| **Global** | `MediaTrackNext`     | Skip to next track                                         |
-| **Global** | `MediaTrackPrevious` | Return to previous track                                   |
-| **In-App** | `Space`              | Play / Pause                                               |
-| **In-App** | `←` / `→`            | Seek backward / forward 5 seconds                          |
-| **In-App** | `↑` / `↓`            | Volume up / down (5% increments)                           |
-| **In-App** | `M`                  | Mute / Unmute                                              |
-| **In-App** | `N`                  | Next track in queue                                        |
-| **In-App** | `P`                  | Previous track                                             |
-| **In-App** | `D`                  | Open / Close Queue Directory                               |
-| **In-App** | `E`                  | Open / Close Equalizer                                     |
+| Scope      | Shortcut                         | Action                                                     |
+| :--------- | :------------------------------- | :--------------------------------------------------------- |
+| **Global** | `Alt + Shift + M` / `Ctrl+Alt+M` | **Summon / Focus / Toggle Musix** from anywhere in Windows |
+| **Global** | `MediaPlayPause`                 | Play / Pause current track                                 |
+| **Global** | `MediaTrackNext`                 | Skip to next track                                         |
+| **Global** | `MediaTrackPrevious`             | Return to previous track                                   |
+| **In-App** | `Space`                          | Play / Pause                                               |
+| **In-App** | `←` / `→`                        | Seek backward / forward 5 seconds                          |
+| **In-App** | `↑` / `↓`                        | Volume up / down (5% increments)                           |
+| **In-App** | `M`                              | Mute / Unmute                                              |
+| **In-App** | `N`                              | Next track in queue                                        |
+| **In-App** | `P`                              | Previous track                                             |
+| **In-App** | `D`                              | Open / Close Queue Directory                               |
+| **In-App** | `E`                              | Open / Close Equalizer                                     |
 
 ---
 

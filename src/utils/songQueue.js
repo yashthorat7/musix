@@ -1,14 +1,12 @@
 const songQueue = {
   songs: [],
   currentIndex: -1,
-  playedSongs: [],
 
   initializeQueue(songsArray = [], currentIndex = 0) {
     if (!Array.isArray(songsArray)) {
       this.songs = [];
       this.currentIndex = -1;
-      this.playedSongs = [];
-      return this.getVisibleSongs();
+      return [];
     }
 
     this.songs = [...songsArray];
@@ -20,8 +18,7 @@ const songQueue = {
         Math.min(currentIndex, this.songs.length - 1),
       );
     }
-    this.playedSongs = [];
-    return this.getVisibleSongs();
+    return this.getAllSongs();
   },
 
   addSongs(songsArray) {
@@ -29,12 +26,12 @@ const songQueue = {
     if (this.currentIndex === -1 && this.songs.length > 0) {
       this.currentIndex = 0;
     }
-    return this.getVisibleSongs();
+    return this.getAllSongs();
   },
 
   appendSongs(songsArray) {
     if (!Array.isArray(songsArray) || songsArray.length === 0) {
-      return this.getVisibleSongs();
+      return this.getAllSongs();
     }
 
     const newSongs = songsArray.filter(
@@ -49,36 +46,45 @@ const songQueue = {
       }
     }
 
-    return this.getVisibleSongs();
+    return this.getAllSongs();
   },
 
   removeSong(index) {
-    if (index < 0 || index >= this.getVisibleSongs().length)
-      return this.getVisibleSongs();
+    if (index < 0 || index >= this.songs.length) {
+      return this.getAllSongs();
+    }
 
-    const actualIndex = index + this.currentIndex;
-    if (actualIndex >= 0 && actualIndex < this.songs.length) {
-      this.songs.splice(actualIndex, 1);
-      if (this.songs.length === 0) {
-        this.currentIndex = -1;
-      } else if (this.currentIndex >= this.songs.length) {
+    this.songs.splice(index, 1);
+
+    if (this.songs.length === 0) {
+      this.currentIndex = -1;
+    } else if (index < this.currentIndex) {
+      this.currentIndex--;
+    } else if (index === this.currentIndex) {
+      if (this.currentIndex >= this.songs.length) {
         this.currentIndex = this.songs.length - 1;
       }
     }
 
-    return this.getVisibleSongs();
+    return this.getAllSongs();
   },
 
   clearQueue() {
     this.songs = [];
     this.currentIndex = -1;
-    this.playedSongs = [];
     return [];
   },
 
   getCurrentSong() {
     if (this.currentIndex >= 0 && this.currentIndex < this.songs.length) {
       return this.songs[this.currentIndex];
+    }
+    return null;
+  },
+
+  getSongAtIndex(index) {
+    if (index >= 0 && index < this.songs.length) {
+      return this.songs[index];
     }
     return null;
   },
@@ -95,6 +101,14 @@ const songQueue = {
 
   getAllSongs() {
     return [...this.songs];
+  },
+
+  getQueue() {
+    return this.getAllSongs();
+  },
+
+  getVisibleSongs() {
+    return this.getAllSongs();
   },
 
   updateSongMetadata(path, metadataUpdate) {
@@ -116,66 +130,44 @@ const songQueue = {
     return updated;
   },
 
-  getVisibleSongs() {
-    if (this.currentIndex < 0 || this.currentIndex >= this.songs.length) {
-      return [];
-    }
-    return this.songs.slice(this.currentIndex);
-  },
-
-  getQueue() {
-    return this.getVisibleSongs();
-  },
-
   nextSong() {
     if (this.songs.length === 0) return null;
 
-    if (this.currentIndex >= this.songs.length - 1) {
-      return this.getCurrentSong();
+    if (this.currentIndex < this.songs.length - 1) {
+      this.currentIndex++;
+    } else {
+      this.currentIndex = 0;
     }
 
-    const currentSong = this.getCurrentSong();
-    if (currentSong) {
-      this.playedSongs.push(currentSong);
-    }
-
-    this.currentIndex++;
     return this.getCurrentSong();
   },
 
   previousSong() {
-    if (this.playedSongs.length > 0) {
-      const previousSong = this.playedSongs.pop();
-      this.songs.splice(this.currentIndex, 0, previousSong);
-      return previousSong;
-    }
+    if (this.songs.length === 0) return null;
 
     if (this.currentIndex > 0) {
       this.currentIndex--;
-      return this.getCurrentSong();
+    } else {
+      this.currentIndex = this.songs.length - 1;
     }
 
     return this.getCurrentSong();
   },
 
   shuffleQueue() {
-    if (this.songs.length <= 1) return this.getVisibleSongs();
+    if (this.songs.length <= 1) return this.getAllSongs();
 
-    const upcomingSongs = this.songs.slice(this.currentIndex + 1);
+    const currentSong = this.getCurrentSong();
+    const remaining = this.songs.filter((_, idx) => idx !== this.currentIndex);
 
-    for (let i = upcomingSongs.length - 1; i > 0; i--) {
+    for (let i = remaining.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [upcomingSongs[i], upcomingSongs[j]] = [
-        upcomingSongs[j],
-        upcomingSongs[i],
-      ];
+      [remaining[i], remaining[j]] = [remaining[j], remaining[i]];
     }
 
-    this.songs = [
-      ...this.songs.slice(0, this.currentIndex + 1),
-      ...upcomingSongs,
-    ];
-    return this.getVisibleSongs();
+    this.songs = currentSong ? [currentSong, ...remaining] : remaining;
+    this.currentIndex = currentSong ? 0 : -1;
+    return this.getAllSongs();
   },
 };
 

@@ -14,7 +14,11 @@ import { useAudioPlayer } from "../hooks/useAudioPlayer";
 import { useWebAudioEqualizer } from "../hooks/useWebAudioEqualizer";
 import songQueue from "../utils/songQueue";
 import { isAudioFile, getCleanTitle } from "../utils/audioFormats";
-import { loadMusixState, saveMusixState } from "../utils/storage";
+import {
+  loadMusixState,
+  saveMusixState,
+  isAbsolutePath,
+} from "../utils/storage";
 import {
   fetchOnlineCoverArt,
   getCachedCoverArt,
@@ -29,18 +33,18 @@ export function AudioProvider({ children }) {
     savedState.currentTrack?.path || "",
   );
   const activeAudioPathRef = useRef(savedState.currentTrack?.path || "");
-  const [seekingDirection, setSeekingDirection] = useState(0);
-  const [queue, setQueue] = useState([]);
+  const [seekingDirection] = useState(0);
+  const [queue, setQueue] = useState(savedState.queue || []);
+  const [currentIndex, setCurrentIndex] = useState(
+    typeof savedState.currentIndex === "number" ? savedState.currentIndex : -1,
+  );
   const audioRef = useRef(null);
 
   const { metadata, extractMetadata, setMetadata } = useMetadata();
 
-  const equalizer = useWebAudioEqualizer(audioRef);
+  const equalizer = useWebAudioEqualizer();
 
-  const handleResumeAudio = useCallback(() => {
-    equalizer.initAudioGraph();
-    equalizer.resumeAudioContext();
-  }, [equalizer]);
+  const handleResumeAudio = useCallback(() => {}, []);
 
   const {
     isPlaying,
@@ -50,18 +54,25 @@ export function AudioProvider({ children }) {
     setVolume,
     togglePlay,
     handleSeek,
-    handlePrevious,
-    handleNext,
     loadAudio,
     resetAudio,
     setIsPlaying,
     setCurrentTime,
-    setDuration,
   } = useAudioPlayer(audioRef, handleResumeAudio);
+
+  const pauseAndReset = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    setIsPlaying(false);
+    setCurrentTime(0);
+    saveMusixState({ currentTime: 0 });
+  }, [audioRef, setIsPlaying, setCurrentTime]);
 
   const loadFile = useCallback(
     async (path, autoPlay = true, resumeTime = 0) => {
-      if (!isAudioFile(path)) return;
+      if (!isAudioFile(path) || !isAbsolutePath(path)) return;
 
       activeAudioPathRef.current = path;
       setAudioFile(path);
@@ -81,12 +92,12 @@ export function AudioProvider({ children }) {
           meta = { ...(meta || {}), cover_art: cachedCover };
           setMetadata(meta);
           songQueue.updateSongMetadata(path, { cover_art: cachedCover });
-          setQueue(songQueue.getQueue());
+          setQueue(songQueue.getAllSongs());
         } else {
           fetchOnlineCoverArt(meta, fileName, path).then((onlineCover) => {
             if (onlineCover) {
               songQueue.updateSongMetadata(path, { cover_art: onlineCover });
-              setQueue(songQueue.getQueue());
+              setQueue(songQueue.getAllSongs());
               if (activeAudioPathRef.current === path) {
                 setMetadata((prev) => ({
                   ...(prev || meta || {}),
@@ -109,6 +120,7 @@ export function AudioProvider({ children }) {
       }
 
       await loadAudio(path, resumeTime);
+      setCurrentIndex(songQueue.getCurrentIndex());
 
       saveMusixState({
         currentTrack: {
@@ -117,22 +129,25 @@ export function AudioProvider({ children }) {
           metadata: meta,
         },
         currentIndex: songQueue.getCurrentIndex(),
-        currentTime: resumeTime,
+        currentTime: 0,
       });
 
-      if (autoPlay) {
-        setTimeout(() => {
-          handleResumeAudio();
-          if (audioRef.current) {
-            audioRef.current.play().catch(() => {});
-            setIsPlaying(true);
-          }
-        }, 250);
+      if (autoPlay && audioRef.current) {
+        const playPromise = audioRef.current.play();
+        if (playPromise) {
+          playPromise
+            .then(() => {
+              setIsPlaying(true);
+            })
+            .catch(() => {
+              setIsPlaying(false);
+            });
+        }
       }
 
       return meta;
     },
-    [extractMetadata, loadAudio, setIsPlaying, handleResumeAudio, setMetadata],
+    [extractMetadata, loadAudio, setIsPlaying, setMetadata],
   );
 
   const processSongs = useCallback(
@@ -143,11 +158,15 @@ export function AudioProvider({ children }) {
 
       try {
         for (const path of paths) {
-          if (typeof path === "string" && isAudioFile(path)) {
+          if (
+            typeof path === "string" &&
+            isAudioFile(path) &&
+            isAbsolutePath(path)
+          ) {
             try {
               let meta = null;
               try {
-                meta = await invoke("extract_metadata", { filepath: path });
+                meta = await extractMetadata(path);
               } catch (e) {
                 meta = null;
               }
@@ -170,15 +189,33 @@ export function AudioProvider({ children }) {
         }
 
         if (songsWithMetadata.length > 0) {
-          const wasQueueEmpty = songQueue.getQueue().length === 0;
           songQueue.appendSongs(songsWithMetadata);
-          const newQueue = songQueue.getQueue();
+          const newQueue = songQueue.getAllSongs();
           setQueue(newQueue);
 
-          saveMusixState({
-            queue: songQueue.getAllSongs(),
-            currentIndex: songQueue.getCurrentIndex(),
-          });
+          if (playFirstImmediately) {
+            const firstSong = songsWithMetadata[0];
+            const songIdx = newQueue.findIndex(
+              (s) => s.path === firstSong.path,
+            );
+            const targetIdx = songIdx !== -1 ? songIdx : 0;
+            songQueue.setCurrentIndex(targetIdx);
+            setCurrentIndex(targetIdx);
+
+            saveMusixState({
+              queue: newQueue,
+              currentIndex: targetIdx,
+            });
+
+            await loadFile(firstSong.path, true, 0);
+          } else {
+            const currentIdx = songQueue.getCurrentIndex();
+            setCurrentIndex(currentIdx);
+            saveMusixState({
+              queue: newQueue,
+              currentIndex: currentIdx,
+            });
+          }
 
           songsWithMetadata.forEach((song) => {
             if (!song.metadata?.cover_art) {
@@ -188,7 +225,7 @@ export function AudioProvider({ children }) {
                     songQueue.updateSongMetadata(song.path, {
                       cover_art: onlineCover,
                     });
-                    setQueue(songQueue.getQueue());
+                    setQueue(songQueue.getAllSongs());
                     if (activeAudioPathRef.current === song.path) {
                       setMetadata((prev) => ({
                         ...(prev || song.metadata || {}),
@@ -213,22 +250,12 @@ export function AudioProvider({ children }) {
               );
             }
           });
-
-          if (
-            playFirstImmediately &&
-            (wasQueueEmpty || (!isPlaying && audioFile === ""))
-          ) {
-            const currentSong = songQueue.getCurrentSong();
-            if (currentSong) {
-              await loadFile(currentSong.path, true);
-            }
-          }
         }
       } catch (error) {
         console.error("Error processing audio songs:", error);
       }
     },
-    [loadFile, isPlaying, audioFile, setMetadata],
+    [loadFile, extractMetadata, setMetadata],
   );
 
   useEffect(() => {
@@ -261,9 +288,16 @@ export function AudioProvider({ children }) {
         }
 
         if (state.queue && state.queue.length > 0) {
-          songQueue.initializeQueue(state.queue, state.currentIndex || 0);
-          const initialQueue = songQueue.getQueue();
+          const validIndex =
+            typeof state.currentIndex === "number" &&
+            state.currentIndex >= 0 &&
+            state.currentIndex < state.queue.length
+              ? state.currentIndex
+              : 0;
+          songQueue.initializeQueue(state.queue, validIndex);
+          const initialQueue = songQueue.getAllSongs();
           setQueue(initialQueue);
+          setCurrentIndex(songQueue.getCurrentIndex());
 
           const targetSong =
             songQueue.getCurrentSong() || state.currentTrack || state.queue[0];
@@ -275,7 +309,8 @@ export function AudioProvider({ children }) {
               setMetadata(targetSong.metadata);
             }
 
-            await loadAudio(targetSong.path, state.currentTime || 0);
+            await loadAudio(targetSong.path, 0);
+            saveMusixState({ currentTime: 0 });
 
             const meta = await extractMetadata(targetSong.path);
             const fileName =
@@ -295,7 +330,7 @@ export function AudioProvider({ children }) {
                 songQueue.updateSongMetadata(targetSong.path, {
                   cover_art: cached,
                 });
-                setQueue(songQueue.getQueue());
+                setQueue(songQueue.getAllSongs());
               } else {
                 fetchOnlineCoverArt(
                   currentMeta,
@@ -313,7 +348,7 @@ export function AudioProvider({ children }) {
                     songQueue.updateSongMetadata(targetSong.path, {
                       cover_art: onlineCover,
                     });
-                    setQueue(songQueue.getQueue());
+                    setQueue(songQueue.getAllSongs());
                   }
                 });
               }
@@ -327,7 +362,8 @@ export function AudioProvider({ children }) {
             setMetadata(targetSong.metadata);
           }
 
-          await loadAudio(targetSong.path, state.currentTime || 0);
+          await loadAudio(targetSong.path, 0);
+          saveMusixState({ currentTime: 0 });
 
           const meta = await extractMetadata(targetSong.path);
           const fileName =
@@ -369,12 +405,35 @@ export function AudioProvider({ children }) {
     initFromStorage();
   }, []);
 
+  const handleNextSong = useCallback(() => {
+    const nextSong = songQueue.nextSong();
+    if (nextSong) {
+      setCurrentIndex(songQueue.getCurrentIndex());
+      loadFile(nextSong.path, true, 0);
+      setQueue(songQueue.getAllSongs());
+    }
+  }, [loadFile]);
+
+  const handlePreviousSong = useCallback(() => {
+    if (currentTime > 3) {
+      handleSeek(0);
+      return;
+    }
+    const prevSong = songQueue.previousSong();
+    if (prevSong) {
+      setCurrentIndex(songQueue.getCurrentIndex());
+      loadFile(prevSong.path, true, 0);
+      setQueue(songQueue.getAllSongs());
+    }
+  }, [currentTime, handleSeek, loadFile]);
+
   useEffect(() => {
     const handleSongEnd = () => {
       const nextSong = songQueue.nextSong();
       if (nextSong) {
-        loadFile(nextSong.path, true);
-        setQueue(songQueue.getQueue());
+        setCurrentIndex(songQueue.getCurrentIndex());
+        loadFile(nextSong.path, true, 0);
+        setQueue(songQueue.getAllSongs());
       } else {
         setIsPlaying(false);
       }
@@ -387,47 +446,112 @@ export function AudioProvider({ children }) {
     }
   }, [loadFile, setIsPlaying]);
 
-  const handleNextSong = useCallback(() => {
-    const nextSong = songQueue.nextSong();
-    if (nextSong) {
-      loadFile(nextSong.path, true);
-      setQueue(songQueue.getQueue());
-    }
-  }, [loadFile]);
-
-  const handlePreviousSong = useCallback(() => {
-    const prevSong = songQueue.previousSong();
-    if (prevSong) {
-      loadFile(prevSong.path, true);
-      setQueue(songQueue.getQueue());
-    }
-  }, [loadFile]);
-
   const playSongAtIndex = useCallback(
     (index) => {
-      const visible = songQueue.getVisibleSongs();
-      if (index >= 0 && index < visible.length) {
-        const target = visible[index];
-        const all = songQueue.getAllSongs();
-        const allIdx = all.findIndex((s) => s.path === target.path);
-        if (allIdx >= 0) {
-          songQueue.setCurrentIndex(allIdx);
-          setQueue(songQueue.getQueue());
-          loadFile(target.path, true);
-        }
+      const all = songQueue.getAllSongs();
+      if (index >= 0 && index < all.length) {
+        const target = all[index];
+        songQueue.setCurrentIndex(index);
+        setCurrentIndex(index);
+        setQueue(songQueue.getAllSongs());
+        loadFile(target.path, true, 0);
       }
     },
     [loadFile],
   );
 
+  const removeSong = useCallback(
+    (index) => {
+      const currentIdx = songQueue.getCurrentIndex();
+      const isRemovingCurrent = index === currentIdx;
+
+      songQueue.removeSong(index);
+      const newQueue = songQueue.getAllSongs();
+      const newCurrentIdx = songQueue.getCurrentIndex();
+
+      setQueue(newQueue);
+      setCurrentIndex(newCurrentIdx);
+
+      saveMusixState({
+        queue: newQueue,
+        currentIndex: newCurrentIdx,
+      });
+
+      if (newQueue.length === 0) {
+        resetAudio();
+        setAudioFile("");
+        setMetadata(null);
+        saveMusixState({
+          currentTrack: null,
+          currentTime: 0,
+          currentIndex: -1,
+        });
+      } else if (isRemovingCurrent) {
+        const nextSong = songQueue.getCurrentSong();
+        if (nextSong) {
+          loadFile(nextSong.path, true, 0);
+        }
+      }
+    },
+    [loadFile, resetAudio, setMetadata],
+  );
+
+  const clearQueue = useCallback(() => {
+    activeAudioPathRef.current = "";
+    songQueue.clearQueue();
+    setQueue([]);
+    setCurrentIndex(-1);
+    resetAudio();
+    setAudioFile("");
+    setMetadata(null);
+    saveMusixState({
+      queue: [],
+      currentTrack: null,
+      currentIndex: -1,
+      currentTime: 0,
+    });
+  }, [resetAudio, setMetadata]);
+
+  const shuffleQueue = useCallback(() => {
+    const shuffled = songQueue.shuffleQueue();
+    setQueue(shuffled);
+    setCurrentIndex(songQueue.getCurrentIndex());
+    saveMusixState({
+      queue: songQueue.getAllSongs(),
+      currentIndex: songQueue.getCurrentIndex(),
+    });
+  }, []);
+
+  const handleTogglePlay = useCallback(() => {
+    if (
+      audioRef.current &&
+      (!audioRef.current.src ||
+        audioRef.current.src === window.location.href ||
+        audioRef.current.src.endsWith("/"))
+    ) {
+      const current = songQueue.getCurrentSong();
+      if (current && current.path) {
+        loadFile(current.path, true, 0);
+        return;
+      } else if (queue.length > 0) {
+        loadFile(queue[0].path, true, 0);
+        return;
+      }
+    }
+    togglePlay();
+  }, [togglePlay, loadFile, queue]);
+
   useEffect(() => {
     let unlistenPlayPause;
     let unlistenNext;
     let unlistenPrev;
+    let unlistenSingleInstance;
+    let unlistenClose;
+    let unlistenQuit;
 
     try {
       listen("shortcut-play-pause", () => {
-        togglePlay();
+        handleTogglePlay();
       })
         .then((fn) => (unlistenPlayPause = fn))
         .catch(() => {});
@@ -443,14 +567,47 @@ export function AudioProvider({ children }) {
       })
         .then((fn) => (unlistenPrev = fn))
         .catch(() => {});
+
+      listen("single-instance-args", (event) => {
+        const args = event.payload;
+        if (Array.isArray(args) && args.length > 0) {
+          const fileArgs = args.filter(isAudioFile);
+          if (fileArgs.length > 0) {
+            processSongs(fileArgs, true);
+          }
+        }
+      })
+        .then((fn) => (unlistenSingleInstance = fn))
+        .catch(() => {});
+
+      listen("window-close-requested", () => {
+        pauseAndReset();
+      })
+        .then((fn) => (unlistenClose = fn))
+        .catch(() => {});
+
+      listen("app-quit", () => {
+        pauseAndReset();
+      })
+        .then((fn) => (unlistenQuit = fn))
+        .catch(() => {});
     } catch (e) {}
 
     return () => {
       if (unlistenPlayPause) unlistenPlayPause();
       if (unlistenNext) unlistenNext();
       if (unlistenPrev) unlistenPrev();
+      if (unlistenSingleInstance) unlistenSingleInstance();
+      if (unlistenClose) unlistenClose();
+      if (unlistenQuit) unlistenQuit();
     };
-  }, [togglePlay, handleNextSong, handlePreviousSong]);
+  }, [
+    handleTogglePlay,
+    handleNextSong,
+    handlePreviousSong,
+    processSongs,
+    pauseAndReset,
+  ]);
 
   useEffect(() => {
     let unlistenMove;
@@ -461,8 +618,15 @@ export function AudioProvider({ children }) {
         win
           .onMoved(({ payload: pos }) => {
             if (moveTimer) clearTimeout(moveTimer);
-            moveTimer = setTimeout(() => {
-              saveMusixState({ windowPosition: { x: pos.x, y: pos.y } });
+            moveTimer = setTimeout(async () => {
+              try {
+                const size = await win.outerSize();
+                const scale = (await win.scaleFactor().catch(() => 1.0)) || 1.0;
+                const logicalWidth = size ? size.width / scale : 0;
+                if (logicalWidth > 200) {
+                  saveMusixState({ windowPosition: { x: pos.x, y: pos.y } });
+                }
+              } catch (e) {}
             }, 800);
           })
           .then((fn) => (unlistenMove = fn))
@@ -483,7 +647,7 @@ export function AudioProvider({ children }) {
       switch (e.code) {
         case "Space":
           e.preventDefault();
-          togglePlay();
+          handleTogglePlay();
           break;
         case "ArrowLeft":
           e.preventDefault();
@@ -521,7 +685,7 @@ export function AudioProvider({ children }) {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [
-    togglePlay,
+    handleTogglePlay,
     handleSeek,
     currentTime,
     duration,
@@ -543,63 +707,25 @@ export function AudioProvider({ children }) {
     loadFile,
     processSongs,
     playSongAtIndex,
-    togglePlay,
+    togglePlay: handleTogglePlay,
     handleSeek,
     handlePrevious: handlePreviousSong,
     handleNext: handleNextSong,
     fileName: audioFile ? audioFile.split(/[/\\]/).pop() : null,
     displayTitle: getCleanTitle(audioFile, metadata?.title),
     seekingDirection,
-    queue: songQueue.getQueue(),
+    queue,
+    currentIndex,
     equalizer,
-    clearQueue: () => {
-      activeAudioPathRef.current = "";
-      songQueue.clearQueue();
-      setQueue([]);
-      resetAudio();
-      setAudioFile("");
-      setMetadata(null);
-      saveMusixState({
-        queue: [],
-        currentTrack: null,
-        currentIndex: -1,
-        currentTime: 0,
-      });
-    },
-    shuffleQueue: () => {
-      songQueue.shuffleQueue();
-      const newQ = songQueue.getQueue();
-      setQueue(newQ);
-      saveMusixState({ queue: songQueue.getAllSongs() });
-    },
-    removeSong: (index) => {
-      const isRemovingCurrent = index === 0;
-      songQueue.removeSong(index);
-      const newQueue = songQueue.getQueue();
-      setQueue(newQueue);
-
-      saveMusixState({
-        queue: songQueue.getAllSongs(),
-        currentIndex: songQueue.getCurrentIndex(),
-      });
-
-      if (newQueue.length === 0) {
-        resetAudio();
-        setAudioFile("");
-        setMetadata(null);
-        saveMusixState({ currentTrack: null, currentTime: 0 });
-      } else if (isRemovingCurrent) {
-        const nextSong = songQueue.getCurrentSong();
-        if (nextSong) {
-          loadFile(nextSong.path, true);
-        }
-      }
-    },
+    clearQueue,
+    shuffleQueue,
+    removeSong,
+    pauseAndReset,
   };
 
   return (
     <AudioContext.Provider value={value}>
-      <audio ref={audioRef} crossOrigin="anonymous" />
+      <audio ref={audioRef} />
       {children}
     </AudioContext.Provider>
   );

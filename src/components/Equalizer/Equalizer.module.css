@@ -30,7 +30,6 @@
   align-items: center;
   gap: 10px;
   height: 100%;
-  -webkit-app-region: no-drag;
 }
 
 .sliderContainer {
@@ -39,7 +38,6 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  -webkit-app-region: no-drag;
   padding: 0 10px;
   cursor: pointer;
 }
@@ -95,7 +93,6 @@
   border: none;
   cursor: pointer;
   padding: 3px 6px;
-  -webkit-app-region: no-drag;
 }
 
 .resetButton img {

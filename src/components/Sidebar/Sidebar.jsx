@@ -22,6 +22,7 @@ function Sidebar({ activePanel, onPanelChange }) {
   };
 
   const handleMouseDown = (e) => {
+    e.stopPropagation();
     setIsDragging(true);
     updateVolume(e.clientY);
   };
@@ -78,7 +79,7 @@ function Sidebar({ activePanel, onPanelChange }) {
         </div>
       )}
 
-      <div className={styles.tray}>
+      <div className={styles.tray} data-no-window-drag>
         <button
           className={`${styles.iconButton} ${activePanel === "directory" ? styles.active : ""}`}
           onClick={() => handlePanelClick("directory")}
@@ -98,13 +99,16 @@ function Sidebar({ activePanel, onPanelChange }) {
           className={styles.sliderContainer}
           ref={sliderRef}
           onMouseDown={handleMouseDown}
+          data-no-window-drag
+          data-slider
         >
-          <div className={styles.progressBar}>
+          <div className={styles.progressBar} data-no-window-drag>
             <div
               className={styles.progressFill}
               style={{ height: `${volume * 100}%` }}
+              data-no-window-drag
             >
-              <div className={styles.progressHandle}></div>
+              <div className={styles.progressHandle} data-no-window-drag></div>
             </div>
           </div>
         </div>

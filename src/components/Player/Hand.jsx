@@ -1,10 +1,15 @@
 import React from "react";
 import styles from "./Hand.module.css";
+import { useAudio } from "../../context/AudioContext";
 
 export default function Hand({ onClose }) {
+  const { isPlaying } = useAudio();
+
   return (
     <>
-      <div className={styles.handWrapper}>
+      <div
+        className={`${styles.handWrapper} ${!isPlaying ? styles.paused : ""}`}
+      >
         <svg className={styles.hand}>
           <polyline
             points="39,5 39,95 0,120"

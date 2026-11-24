@@ -11,7 +11,6 @@ export function useAudioPlayer(audioRef, onResumeAudio) {
     typeof savedState.volume === "number" ? savedState.volume : 0.7,
   );
   const clickTimeoutRef = useRef(null);
-  const lastSaveTimeRef = useRef(0);
 
   const setVolume = useCallback(
     (val) => {
@@ -41,6 +40,9 @@ export function useAudioPlayer(audioRef, onResumeAudio) {
               setCurrentTime(initialTime);
             }
           };
+          audioRef.current.onerror = (e) => {
+            console.error("Audio error:", e, audioRef.current.error);
+          };
         }
       } catch (error) {
         console.error("Error loading audio:", error);
@@ -49,38 +51,77 @@ export function useAudioPlayer(audioRef, onResumeAudio) {
     [audioRef, volume],
   );
 
+  const isPlayRequestedRef = useRef(false);
+  const playPromiseRef = useRef(null);
+
   const togglePlay = useCallback(() => {
-    if (!audioRef.current) return;
+    const audio = audioRef.current;
+    if (!audio) return;
 
     if (onResumeAudio) {
       onResumeAudio();
     }
 
-    if (clickTimeoutRef.current) {
-      clearTimeout(clickTimeoutRef.current);
-      clickTimeoutRef.current = null;
+    if (
+      !audio.src ||
+      audio.src === window.location.href ||
+      audio.src.endsWith("/")
+    ) {
+      return;
     }
 
-    if (isPlaying) {
-      audioRef.current.pause();
+    const isCurrentlyPlaying = !audio.paused && !audio.ended;
+
+    if (isCurrentlyPlaying || isPlayRequestedRef.current) {
+      isPlayRequestedRef.current = false;
       setIsPlaying(false);
-      saveMusixState({ currentTime: audioRef.current.currentTime });
+
+      if (playPromiseRef.current) {
+        playPromiseRef.current
+          .then(() => {
+            if (!isPlayRequestedRef.current && audioRef.current) {
+              audioRef.current.pause();
+            }
+          })
+          .catch(() => {});
+      } else {
+        audio.pause();
+      }
     } else {
-      const playPromise = audioRef.current.play();
-      if (playPromise) {
+      isPlayRequestedRef.current = true;
+      setIsPlaying(true);
+
+      if (audio.ended) {
+        audio.currentTime = 0;
+      }
+
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromiseRef.current = playPromise;
         playPromise
           .then(() => {
-            setIsPlaying(true);
+            playPromiseRef.current = null;
+            if (!isPlayRequestedRef.current && audioRef.current) {
+              audioRef.current.pause();
+              setIsPlaying(false);
+            } else {
+              setIsPlaying(true);
+            }
           })
           .catch((err) => {
-            console.warn("Playback prevented or interrupted:", err);
+            playPromiseRef.current = null;
+            if (err.name === "AbortError") {
+              return;
+            }
+            console.warn("Playback error:", err);
             setIsPlaying(false);
+            isPlayRequestedRef.current = false;
           });
       } else {
         setIsPlaying(true);
       }
     }
-  }, [isPlaying, audioRef, onResumeAudio]);
+  }, [audioRef, onResumeAudio]);
 
   const handleSeek = useCallback(
     (time) => {
@@ -88,7 +129,6 @@ export function useAudioPlayer(audioRef, onResumeAudio) {
         const safeTime = Math.max(0, Math.min(time, duration || 0));
         audioRef.current.currentTime = safeTime;
         setCurrentTime(safeTime);
-        saveMusixState({ currentTime: safeTime });
       }
     },
     [audioRef, duration],
@@ -127,33 +167,42 @@ export function useAudioPlayer(audioRef, onResumeAudio) {
     const updateTime = () => {
       const now = audio.currentTime;
       setCurrentTime(now);
-
-      const nowMs = Date.now();
-      if (nowMs - lastSaveTimeRef.current > 2000) {
-        lastSaveTimeRef.current = nowMs;
-        saveMusixState({ currentTime: now });
-      }
     };
 
     const handleEnded = () => {
+      isPlayRequestedRef.current = false;
       setIsPlaying(false);
       setCurrentTime(0);
       saveMusixState({ currentTime: 0 });
     };
 
-    const handlePlay = () => setIsPlaying(true);
-    const handlePause = () => setIsPlaying(false);
+    const handlePlay = () => {
+      isPlayRequestedRef.current = true;
+      setIsPlaying(true);
+    };
+
+    const handlePause = () => {
+      isPlayRequestedRef.current = false;
+      setIsPlaying(false);
+    };
+
+    const handleError = () => {
+      isPlayRequestedRef.current = false;
+      setIsPlaying(false);
+    };
 
     audio.addEventListener("timeupdate", updateTime);
     audio.addEventListener("ended", handleEnded);
     audio.addEventListener("play", handlePlay);
     audio.addEventListener("pause", handlePause);
+    audio.addEventListener("error", handleError);
 
     return () => {
       audio.removeEventListener("timeupdate", updateTime);
       audio.removeEventListener("ended", handleEnded);
       audio.removeEventListener("play", handlePlay);
       audio.removeEventListener("pause", handlePause);
+      audio.removeEventListener("error", handleError);
     };
   }, [audioRef, volume]);
 
