@@ -88,9 +88,10 @@ export function useDiscRotation(
     gradientVariants[Math.floor(Math.random() * gradientVariants.length)],
   );
 
-  const rotRef = useRef(((Number(currentTime) || 0) / SECONDS_PER_REV) * 360);
-  const baseTimeRef = useRef(Number(currentTime) || 0);
-  const baseStampRef = useRef(performance.now());
+  const angleRef = useRef(0);
+  const prevTimeRef = useRef(Number(currentTime) || 0);
+  const prevCoverRef = useRef(coverArt);
+  const lastFrameTimeRef = useRef(performance.now());
 
   const randomizeGradient = () => {
     gradientRef.current =
@@ -103,42 +104,58 @@ export function useDiscRotation(
 
   useEffect(() => {
     const time = Number(currentTime) || 0;
-    baseTimeRef.current = time;
-    baseStampRef.current = performance.now();
-    const rot = (time / SECONDS_PER_REV) * 360;
-    rotRef.current = rot;
-    if (discRef?.current) {
-      discRef.current.style.transform = `rotate(${rot}deg)`;
+    const isSongChange =
+      coverArt !== prevCoverRef.current ||
+      (prevTimeRef.current > 5 && time < 1);
+
+    if (isSongChange) {
+      prevCoverRef.current = coverArt;
+      prevTimeRef.current = time;
+      return;
     }
-  }, [currentTime, discRef]);
+
+    const delta = time - prevTimeRef.current;
+    prevTimeRef.current = time;
+
+    if (!isPlaying || isSeeking) {
+      if (Math.abs(delta) > 0.01 && Math.abs(delta) < 60) {
+        angleRef.current =
+          (angleRef.current + (delta / SECONDS_PER_REV) * 360) % 3600000;
+        if (discRef?.current) {
+          discRef.current.style.transform = `rotate(${angleRef.current}deg)`;
+        }
+      }
+    }
+  }, [currentTime, isPlaying, isSeeking, coverArt, discRef]);
 
   useEffect(() => {
-    if (!isPlaying || isSeeking) {
+    if (!isPlaying) {
       if (discRef?.current) {
-        discRef.current.style.transform = `rotate(${rotRef.current}deg)`;
+        discRef.current.style.transform = `rotate(${angleRef.current}deg)`;
       }
       return;
     }
 
-    baseTimeRef.current = Number(currentTime) || 0;
-    baseStampRef.current = performance.now();
+    lastFrameTimeRef.current = performance.now();
     let animId;
 
-    const tick = () => {
-      const now = performance.now();
-      const elapsed = (now - baseStampRef.current) / 1000;
-      const estimatedTime = baseTimeRef.current + elapsed;
-      const rot = (estimatedTime / SECONDS_PER_REV) * 360;
-      rotRef.current = rot;
+    const tick = (now) => {
+      const dt = Math.min((now - lastFrameTimeRef.current) / 1000, 0.1);
+      lastFrameTimeRef.current = now;
+
+      angleRef.current =
+        (angleRef.current + (dt / SECONDS_PER_REV) * 360) % 3600000;
+
       if (discRef?.current) {
-        discRef.current.style.transform = `rotate(${rot}deg)`;
+        discRef.current.style.transform = `rotate(${angleRef.current}deg)`;
       }
+
       animId = requestAnimationFrame(tick);
     };
 
     animId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(animId);
-  }, [isPlaying, isSeeking, discRef]);
+  }, [isPlaying, discRef]);
 
   const getDiscStyle = (customCover) => {
     const activeCover = customCover || coverArt;
@@ -153,10 +170,10 @@ export function useDiscRotation(
         : gradientBackground,
       backgroundSize: "cover",
       backgroundPosition: "center",
-      transform: `rotate(${rotRef.current}deg)`,
+      transform: `rotate(${angleRef.current}deg)`,
       willChange: "transform",
     };
   };
 
-  return { rotation: rotRef.current, getDiscStyle, randomizeGradient };
+  return { rotation: angleRef.current, getDiscStyle, randomizeGradient };
 }

@@ -73,7 +73,7 @@
 }
 
 .iconButton {
-  background: #ffffff;
+  background: transparent;
   border: none;
   border-radius: 50%;
   height: 26px;
@@ -92,7 +92,7 @@
 }
 
 .iconButton:hover {
-  background: #ffe9e9;
+  background: transparent;
   filter: saturate(1);
 }
 

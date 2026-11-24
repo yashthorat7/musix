@@ -42,9 +42,12 @@ export function AudioProvider({ children }) {
 
   const { metadata, extractMetadata, setMetadata } = useMetadata();
 
-  const equalizer = useWebAudioEqualizer();
+  const equalizer = useWebAudioEqualizer(audioRef);
 
-  const handleResumeAudio = useCallback(() => {}, []);
+  const handleResumeAudio = useCallback(() => {
+    equalizer.initAudioGraph();
+    equalizer.resumeAudioContext();
+  }, [equalizer]);
 
   const {
     isPlaying,
@@ -151,7 +154,7 @@ export function AudioProvider({ children }) {
   );
 
   const processSongs = useCallback(
-    async (paths, playFirstImmediately = true) => {
+    async (paths, playFirstImmediately = false) => {
       if (!paths || !Array.isArray(paths) || paths.length === 0) return;
 
       const songsWithMetadata = [];
@@ -189,11 +192,13 @@ export function AudioProvider({ children }) {
         }
 
         if (songsWithMetadata.length > 0) {
+          const wasEmpty =
+            songQueue.getAllSongs().length === 0 || !activeAudioPathRef.current;
           songQueue.appendSongs(songsWithMetadata);
           const newQueue = songQueue.getAllSongs();
           setQueue(newQueue);
 
-          if (playFirstImmediately) {
+          if (playFirstImmediately || wasEmpty) {
             const firstSong = songsWithMetadata[0];
             const songIdx = newQueue.findIndex(
               (s) => s.path === firstSong.path,
@@ -523,6 +528,8 @@ export function AudioProvider({ children }) {
   }, []);
 
   const handleTogglePlay = useCallback(() => {
+    equalizer.initAudioGraph();
+    equalizer.resumeAudioContext();
     if (
       audioRef.current &&
       (!audioRef.current.src ||
@@ -539,7 +546,7 @@ export function AudioProvider({ children }) {
       }
     }
     togglePlay();
-  }, [togglePlay, loadFile, queue]);
+  }, [togglePlay, loadFile, queue, equalizer]);
 
   useEffect(() => {
     let unlistenPlayPause;

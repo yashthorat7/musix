@@ -26,6 +26,7 @@ function Equalizer({ isOpen }) {
   };
 
   const handleMouseDown = (e, name) => {
+    e.stopPropagation();
     isDragging.current = name;
     updateLevel(name, e.clientY);
 
@@ -46,27 +47,32 @@ function Equalizer({ isOpen }) {
   };
 
   return (
-    <div className={`${styles.container} ${isOpen ? styles.open : ""}`}>
-      <div className={styles.equalizer}>
+    <div
+      className={`${styles.container} ${isOpen ? styles.open : ""}`}
+      data-no-window-drag
+    >
+      <div className={styles.equalizer} data-no-window-drag>
         {EQ_BANDS.map((name) => {
           const value = levels[name] ?? 50;
           return (
-            <div key={name} className={styles.sliderGroup}>
+            <div key={name} className={styles.sliderGroup} data-no-window-drag>
               <div
                 className={styles.sliderContainer}
                 data-slider={name}
+                data-no-window-drag
                 onMouseDown={(e) => handleMouseDown(e, name)}
               >
-                <div className={styles.slider}>
+                <div className={styles.slider} data-no-window-drag>
                   <div
                     className={styles.sliderFill}
                     style={{ height: `${value}%` }}
+                    data-no-window-drag
                   >
-                    <div className={styles.sliderHandle} />
+                    <div className={styles.sliderHandle} data-no-window-drag />
                   </div>
                 </div>
               </div>
-              <span className={styles.sliderLabel}>
+              <span className={styles.sliderLabel} data-no-window-drag>
                 {name.charAt(0).toUpperCase() + name.slice(1)}
               </span>
             </div>
@@ -77,6 +83,7 @@ function Equalizer({ isOpen }) {
         className={styles.resetButton}
         onClick={resetLevels}
         type="button"
+        data-no-window-drag
       >
         <img src="/icons/reset.svg" alt="" />
       </button>

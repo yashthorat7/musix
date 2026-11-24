@@ -28,7 +28,7 @@ function Directory({
     try {
       const selected = await invoke("select_audio_files");
       if (selected && selected.length > 0) {
-        await processSongs(selected);
+        await processSongs(selected, false);
       }
     } catch (error) {
       console.error("Error selecting files:", error);
@@ -36,8 +36,11 @@ function Directory({
   };
 
   return (
-    <div className={`${styles.container} ${isOpen ? styles.open : ""}`}>
-      <div className={styles.songList}>
+    <div
+      className={`${styles.container} ${isOpen ? styles.open : ""}`}
+      data-no-window-drag
+    >
+      <div className={styles.songList} data-no-window-drag>
         {songs.length === 0 ? (
           <div className={styles.emptyMessage}>No songs in queue</div>
         ) : (
@@ -53,12 +56,11 @@ function Directory({
                 key={`${song.path}-${index}`}
                 ref={isCurrent ? currentSongRef : null}
                 className={`${styles.songItem} ${isCurrent ? styles.currentSong : ""}`}
+                onClick={() => onSelectSong && onSelectSong(index)}
+                style={{ cursor: "pointer" }}
+                data-no-window-drag
               >
-                <div
-                  className={styles.songTitle}
-                  onClick={() => onSelectSong && onSelectSong(index)}
-                  style={{ cursor: "pointer" }}
-                >
+                <div className={styles.songTitle} data-no-window-drag>
                   {displayName}
                 </div>
                 <button
@@ -68,6 +70,7 @@ function Directory({
                     onRemove(index);
                   }}
                   type="button"
+                  data-no-window-drag
                 >
                   <img src="/icons/minus.svg" alt="" />
                 </button>
@@ -76,12 +79,13 @@ function Directory({
           })
         )}
       </div>
-      <div className={styles.controls}>
-        <div className={styles.capsule}>
+      <div className={styles.controls} data-no-window-drag>
+        <div className={styles.capsule} data-no-window-drag>
           <button
             className={styles.capsuleButton}
             onClick={onShuffle}
             type="button"
+            data-no-window-drag
           >
             <img src="/icons/random.svg" alt="" />
           </button>
@@ -89,6 +93,7 @@ function Directory({
             className={styles.capsuleButton}
             onClick={handleAddClick}
             type="button"
+            data-no-window-drag
           >
             <img src="/icons/add.svg" alt="" />
           </button>

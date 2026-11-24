@@ -29,6 +29,7 @@ export function useAudioPlayer(audioRef, onResumeAudio) {
       try {
         const fileUrl = convertFileSrc(path);
         if (audioRef.current) {
+          audioRef.current.crossOrigin = "anonymous";
           audioRef.current.src = fileUrl;
           audioRef.current.volume = volume;
           audioRef.current.load();
