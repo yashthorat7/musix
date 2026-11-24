@@ -102,6 +102,7 @@ export function useDiscRotation(
   const isPlayingRef = useRef(isPlaying);
   const isSeekingRef = useRef(isSeeking);
   const lastSeekTimestampRef = useRef(0);
+  const seekAnimRef = useRef(null);
   const animIdRef = useRef(null);
 
   const [isOnline, setIsOnline] = useState(
@@ -167,6 +168,7 @@ export function useDiscRotation(
     if (!currentKey) return;
 
     if (prevTrackRef.current && prevTrackRef.current !== currentKey) {
+      seekAnimRef.current = null;
       targetAngleRef.current = angleRef.current;
       globalTargetAngle = angleRef.current;
       globalDiscAngle = angleRef.current;
@@ -186,25 +188,33 @@ export function useDiscRotation(
       const activePlaying = isPlayingRef.current;
       const seeking = isSeekingRef.current;
 
-      const diff = targetAngleRef.current - angleRef.current;
-      const absDiff = Math.abs(diff);
-
       if (seeking) {
-        angleRef.current = targetAngleRef.current;
-      } else if (absDiff > 0.05) {
-        const catchUpSpeed = Math.max(absDiff / 0.4, 240);
-        const step = Math.sign(diff) * catchUpSpeed * dt;
-        if (Math.abs(step) >= absDiff) {
-          angleRef.current = targetAngleRef.current;
-        } else {
-          angleRef.current += step;
+        // While user is scrubbing, disc stays at current scrub angle
+        if (discRef?.current) {
+          discRef.current.style.transform = `rotate(${angleRef.current}deg)`;
         }
-      } else {
-        angleRef.current = targetAngleRef.current;
+      } else if (seekAnimRef.current) {
+        const anim = seekAnimRef.current;
+        const elapsed = now - anim.startTime;
+        const p = Math.min(1, Math.max(0, elapsed / anim.duration));
+        // Smooth cubic ease-out: starts fast, finishes smoothly in exactly duration (350ms)
+        const ease = 1 - Math.pow(1 - p, 3);
+
+        let newAngle = anim.startAngle + anim.totalDelta * ease;
         if (activePlaying) {
-          angleRef.current += ROT_SPEED * dt;
-          targetAngleRef.current = angleRef.current;
+          // Accumulate normal playback rotation alongside seek spin
+          newAngle += ROT_SPEED * (elapsed / 1000);
         }
+
+        angleRef.current = newAngle;
+        targetAngleRef.current = newAngle;
+
+        if (p >= 1) {
+          seekAnimRef.current = null;
+        }
+      } else if (activePlaying) {
+        angleRef.current += ROT_SPEED * dt;
+        targetAngleRef.current = angleRef.current;
       }
 
       globalDiscAngle = angleRef.current;
@@ -214,8 +224,8 @@ export function useDiscRotation(
         discRef.current.style.transform = `rotate(${angleRef.current}deg)`;
       }
 
-      const remainingDiff = Math.abs(targetAngleRef.current - angleRef.current);
-      if (activePlaying || remainingDiff > 0.05) {
+      const hasActiveSeek = seekAnimRef.current !== null;
+      if (activePlaying || hasActiveSeek) {
         animIdRef.current = requestAnimationFrame(tick);
       } else {
         animIdRef.current = null;
@@ -227,13 +237,8 @@ export function useDiscRotation(
 
   useEffect(() => {
     isSeekingRef.current = isSeeking;
-    if (!isSeeking) {
-      targetAngleRef.current = angleRef.current;
-      globalTargetAngle = angleRef.current;
-      globalDiscAngle = angleRef.current;
-      if (isPlayingRef.current) {
-        startAnimation();
-      }
+    if (!isSeeking && isPlayingRef.current) {
+      startAnimation();
     }
   }, [isSeeking, startAnimation]);
 
@@ -247,41 +252,52 @@ export function useDiscRotation(
     lastSeekTimestampRef.current = seekTrigger.timestamp;
 
     const delta = seekTrigger.delta;
-    if (!Number.isFinite(delta)) return;
+    if (!Number.isFinite(delta) || Math.abs(delta) < 0.05) return;
 
-    const deltaAngle = delta * ROT_SPEED;
-    targetAngleRef.current += deltaAngle;
+    const dir = Math.sign(delta);
+    const absDelta = Math.abs(delta);
+
+    // Calculate smooth, proportional, non-aliasing seek rotation:
+    // Small delta (<= 8s): 18 deg/s (e.g. 5s = 90 deg)
+    // Large delta (> 8s): scales smoothly up to at most 600 deg (1.66 turns)
+    // At 600 deg over 350ms, peak velocity is ~28 deg/frame, perfectly below
+    // optical aliasing thresholds so the vinyl record is visibly spinning!
+    let spinAngle;
+    if (absDelta <= 8) {
+      spinAngle = absDelta * ROT_SPEED;
+    } else {
+      spinAngle = 144 + Math.min(456, (absDelta - 8) * 4.5);
+    }
+    const seekDeltaAngle = dir * spinAngle;
+
+    // Fixed 350ms duration ensures catchup finishes cleanly under 400ms
+    seekAnimRef.current = {
+      startTime: performance.now(),
+      duration: 350,
+      startAngle: angleRef.current,
+      totalDelta: seekDeltaAngle,
+    };
+
+    targetAngleRef.current = angleRef.current + seekDeltaAngle;
     globalTargetAngle = targetAngleRef.current;
 
-    if (isSeekingRef.current) {
-      angleRef.current = targetAngleRef.current;
-      globalDiscAngle = angleRef.current;
-      if (discRef?.current) {
-        discRef.current.style.transform = `rotate(${angleRef.current}deg)`;
-      }
-    } else {
-      startAnimation();
-    }
-  }, [seekTrigger, startAnimation, discRef]);
+    startAnimation();
+  }, [seekTrigger, startAnimation]);
 
   useEffect(() => {
     isPlayingRef.current = isPlaying;
 
     if (isPlaying) {
-      targetAngleRef.current = angleRef.current;
-      globalTargetAngle = angleRef.current;
-      globalDiscAngle = angleRef.current;
       startAnimation();
     } else {
-      if (animIdRef.current) {
-        cancelAnimationFrame(animIdRef.current);
-        animIdRef.current = null;
-      }
-      targetAngleRef.current = angleRef.current;
-      globalTargetAngle = angleRef.current;
-      globalDiscAngle = angleRef.current;
-      if (discRef?.current) {
-        discRef.current.style.transform = `rotate(${angleRef.current}deg)`;
+      if (!seekAnimRef.current) {
+        if (animIdRef.current) {
+          cancelAnimationFrame(animIdRef.current);
+          animIdRef.current = null;
+        }
+        if (discRef?.current) {
+          discRef.current.style.transform = `rotate(${angleRef.current}deg)`;
+        }
       }
     }
 

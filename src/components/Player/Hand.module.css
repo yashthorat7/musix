@@ -14,7 +14,7 @@
 }
 
 .handWrapper.paused {
-  transform: rotate(-3deg);
+  transform: rotate(-2deg);
 }
 
 .hand {

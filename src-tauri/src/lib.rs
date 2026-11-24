@@ -216,7 +216,7 @@ fn reposition_window(window: tauri::Window) {
     let _ = window.move_window(Position::BottomRight);
     if let Ok(pos) = window.outer_position() {
         let scale_factor = window.scale_factor().unwrap_or(1.0);
-        let offset = (24.0 * scale_factor) as i32;
+        let offset = (60.0 * scale_factor) as i32;
         let _ = window.set_position(tauri::PhysicalPosition::new(
             pos.x - offset,
             pos.y - offset,
@@ -303,11 +303,93 @@ fn toggle_or_show_window(app: &tauri::AppHandle) {
 }
 
 #[cfg(windows)]
-use windows_sys::Win32::Graphics::Gdi::{CreateRectRgn, RedrawWindow, SetWindowRgn, RDW_ALLCHILDREN, RDW_ERASE, RDW_INVALIDATE, RDW_UPDATENOW};
+use windows_sys::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
+#[cfg(windows)]
+use windows_sys::Win32::Graphics::Dwm::{
+    DwmSetWindowAttribute, DWMWA_BORDER_COLOR, DWMWA_COLOR_NONE,
+    DWMWA_WINDOW_CORNER_PREFERENCE,
+};
+#[cfg(windows)]
+use windows_sys::Win32::UI::Shell::{DefSubclassProc, SetWindowSubclass};
 #[cfg(windows)]
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    SetWindowPos, SWP_FRAMECHANGED, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER,
+    GetWindowLongPtrW, SetWindowLongPtrW, SetWindowPos, GWL_EXSTYLE, GWL_STYLE, SWP_FRAMECHANGED,
+    SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER, WM_ERASEBKGND, WM_NCACTIVATE, WM_NCPAINT,
+    WS_BORDER, WS_CAPTION, WS_DLGFRAME, WS_EX_CLIENTEDGE, WS_EX_DLGMODALFRAME, WS_EX_STATICEDGE,
+    WS_EX_WINDOWEDGE, WS_MAXIMIZEBOX, WS_MINIMIZEBOX, WS_POPUP, WS_SYSMENU, WS_THICKFRAME,
 };
+
+#[cfg(windows)]
+unsafe extern "system" fn musix_subclass_proc(
+    hwnd: HWND,
+    umsg: u32,
+    wparam: WPARAM,
+    lparam: LPARAM,
+    _uidsubclass: usize,
+    _dwrefdata: usize,
+) -> LRESULT {
+    match umsg {
+        WM_NCPAINT => 0,
+        WM_NCACTIVATE => 1,
+        WM_ERASEBKGND => 1,
+        _ => DefSubclassProc(hwnd, umsg, wparam, lparam),
+    }
+}
+
+#[cfg(windows)]
+unsafe fn apply_musix_window_styling(hwnd: isize) {
+    let current_style = GetWindowLongPtrW(hwnd as _, GWL_STYLE) as u32;
+    let new_style = (current_style
+        & !(WS_CAPTION
+            | WS_THICKFRAME
+            | WS_MINIMIZEBOX
+            | WS_MAXIMIZEBOX
+            | WS_SYSMENU
+            | WS_BORDER
+            | WS_DLGFRAME))
+        | WS_POPUP;
+    SetWindowLongPtrW(hwnd as _, GWL_STYLE, new_style as _);
+
+    let current_ex_style = GetWindowLongPtrW(hwnd as _, GWL_EXSTYLE) as u32;
+    let new_ex_style = current_ex_style
+        & !(WS_EX_WINDOWEDGE
+            | WS_EX_CLIENTEDGE
+            | WS_EX_STATICEDGE
+            | WS_EX_DLGMODALFRAME);
+    SetWindowLongPtrW(hwnd as _, GWL_EXSTYLE, new_ex_style as _);
+
+    // Suppress Windows 11 accent-colored border completely
+    let border_color = DWMWA_COLOR_NONE; // 0xFFFFFFFE
+    let _ = DwmSetWindowAttribute(
+        hwnd as _,
+        DWMWA_BORDER_COLOR as u32,
+        &border_color as *const _ as *const std::ffi::c_void,
+        std::mem::size_of_val(&border_color) as u32,
+    );
+
+    // DWMWCP_DONOTROUND (1): Never let DWM round the OS window frame.
+    // The CSS card in the webview handles the 24px (and 64px in miniview) rounded corners.
+    let corner_preference = 1u32;
+    let _ = DwmSetWindowAttribute(
+        hwnd as _,
+        DWMWA_WINDOW_CORNER_PREFERENCE as u32,
+        &corner_preference as *const _ as *const std::ffi::c_void,
+        std::mem::size_of_val(&corner_preference) as u32,
+    );
+
+    // Subclass the HWND to intercept non-client area paint, activate, and erase
+    SetWindowSubclass(hwnd as _, Some(musix_subclass_proc), 1001, 0);
+
+    SetWindowPos(
+        hwnd as _,
+        0 as _,
+        0,
+        0,
+        0,
+        0,
+        SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED,
+    );
+}
 
 #[tauri::command]
 fn start_dragging(window: tauri::Window) -> Result<(), String> {
@@ -321,67 +403,52 @@ async fn resize_window_keep_anchor(
     target_height: f64,
 ) -> Result<(), String> {
     let scale_factor = window.scale_factor().unwrap_or(1.0);
+    let current_size = window.outer_size().map_err(|e| e.to_string())?;
+    let current_pos = window.outer_position().map_err(|e| e.to_string())?;
+
+    let start_phys_w = current_size.width as f64;
+    let start_phys_h = current_size.height as f64;
+    let target_phys_w = (target_width * scale_factor).round();
+    let target_phys_h = (target_height * scale_factor).round();
+
+    let anchor_x = current_pos.x + current_size.width as i32;
+    let anchor_y = current_pos.y + current_size.height as i32;
+
+    let final_x = anchor_x - target_phys_w as i32;
+    let final_y = anchor_y - target_phys_h as i32;
+
+    if (start_phys_w - target_phys_w).abs() >= 1.0 || (start_phys_h - target_phys_h).abs() >= 1.0 {
+        #[cfg(windows)]
+        {
+            if let Ok(hwnd) = window.hwnd() {
+                unsafe {
+                    SetWindowPos(
+                        hwnd.0 as _,
+                        0 as _,
+                        final_x,
+                        final_y,
+                        target_phys_w as i32,
+                        target_phys_h as i32,
+                        SWP_NOZORDER | SWP_NOACTIVATE,
+                    );
+                }
+            }
+        }
+
+        #[cfg(not(windows))]
+        {
+            let _ = window.set_size(tauri::LogicalSize::new(target_width, target_height));
+            let _ = window.set_position(tauri::PhysicalPosition::new(final_x, final_y));
+        }
+    }
 
     #[cfg(windows)]
     {
         if let Ok(hwnd) = window.hwnd() {
             unsafe {
-                if target_width < 150.0 {
-                    let left = ((256.0 - target_width) * scale_factor).round() as i32;
-                    let top = ((256.0 - target_height) * scale_factor).round() as i32;
-                    let right = (256.0 * scale_factor).round() as i32;
-                    let bottom = (256.0 * scale_factor).round() as i32;
-                    let rgn = CreateRectRgn(left, top, right, bottom);
-                    SetWindowRgn(hwnd.0 as _, rgn, 1);
-                    SetWindowPos(
-                        hwnd.0 as _,
-                        0 as _,
-                        0,
-                        0,
-                        0,
-                        0,
-                        SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED,
-                    );
-                } else {
-                    SetWindowRgn(hwnd.0 as _, 0 as _, 1);
-                    SetWindowPos(
-                        hwnd.0 as _,
-                        0 as _,
-                        0,
-                        0,
-                        0,
-                        0,
-                        SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED,
-                    );
-                    RedrawWindow(
-                        hwnd.0 as _,
-                        std::ptr::null(),
-                        0 as _,
-                        RDW_INVALIDATE | RDW_UPDATENOW | RDW_ALLCHILDREN | RDW_ERASE,
-                    );
-                    let phys_size = (256.0 * scale_factor).round() as u32;
-                    let _ = window.set_size(tauri::PhysicalSize::new(phys_size, phys_size));
-                }
+                apply_musix_window_styling(hwnd.0 as _);
             }
-            return Ok(());
         }
-    }
-
-    #[cfg(not(windows))]
-    {
-        let current_size = window.outer_size().map_err(|e| e.to_string())?;
-        let current_pos = window.outer_position().map_err(|e| e.to_string())?;
-        let target_phys_w = (target_width * scale_factor).round();
-        let target_phys_h = (target_height * scale_factor).round();
-        let anchor_x = current_pos.x + current_size.width as i32;
-        let anchor_y = current_pos.y + current_size.height as i32;
-        let final_x = anchor_x - target_phys_w as i32;
-        let final_y = anchor_y - target_phys_h as i32;
-        let _ = window.set_size(tauri::PhysicalSize::new(
-            target_phys_w as u32,
-            target_phys_h as u32,
-        ));
-        let _ = window.set_position(tauri::PhysicalPosition::new(final_x, final_y));
     }
 
     Ok(())
@@ -435,6 +502,14 @@ pub fn run() {
             let is_autostart = std::env::args().any(|arg| arg == "--autostart");
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.set_skip_taskbar(true);
+                #[cfg(windows)]
+                {
+                    if let Ok(hwnd) = window.hwnd() {
+                        unsafe {
+                            apply_musix_window_styling(hwnd.0 as _);
+                        }
+                    }
+                }
                 if is_autostart {
                     let _ = window.hide();
                 } else {
@@ -442,7 +517,7 @@ pub fn run() {
 
                     if let Ok(pos) = window.outer_position() {
                         let scale_factor = window.scale_factor().unwrap_or(1.0);
-                        let offset = (24.0 * scale_factor) as i32;
+                        let offset = (60.0 * scale_factor) as i32;
                         let _ = window.set_position(tauri::PhysicalPosition::new(
                             pos.x - offset,
                             pos.y - offset,
@@ -529,6 +604,14 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(|window, event| {
+            #[cfg(windows)]
+            if let tauri::WindowEvent::Focused(_) = event {
+                if let Ok(hwnd) = window.hwnd() {
+                    unsafe {
+                        apply_musix_window_styling(hwnd.0 as _);
+                    }
+                }
+            }
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 api.prevent_close();
                 let _ = window.emit("window-close-requested", ());

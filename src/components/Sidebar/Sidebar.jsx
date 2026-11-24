@@ -7,7 +7,10 @@ function Sidebar({ activePanel, onPanelChange }) {
   const { volume, setVolume } = useAudio();
   const [isDragging, setIsDragging] = useState(false);
   const [hoveredPanel, setHoveredPanel] = useState(null);
+  const [isOpen, setIsOpen] = useState(false);
   const sliderRef = useRef(null);
+  const closeTimeoutRef = useRef(null);
+  const isHoveringRef = useRef(false);
 
   const updateVolume = (clientY) => {
     if (!sliderRef.current) return;
@@ -35,8 +38,37 @@ function Sidebar({ activePanel, onPanelChange }) {
     }
   };
 
+  const isPanelActive =
+    activePanel === "directory" || activePanel === "equalizer";
+
   const handleMouseUp = () => {
     setIsDragging(false);
+    if (!isHoveringRef.current && !isPanelActive) {
+      if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = setTimeout(() => {
+        setIsOpen(false);
+      }, 200);
+    }
+  };
+
+  const handleMouseEnter = () => {
+    isHoveringRef.current = true;
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+    setIsOpen(true);
+  };
+
+  const handleMouseLeave = () => {
+    isHoveringRef.current = false;
+    if (isDragging) return;
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+    }
+    closeTimeoutRef.current = setTimeout(() => {
+      setIsOpen(false);
+    }, 200);
   };
 
   useEffect(() => {
@@ -53,17 +85,32 @@ function Sidebar({ activePanel, onPanelChange }) {
     };
   }, [isDragging]);
 
+  useEffect(() => {
+    return () => {
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const handlePanelClick = (panel) => {
     onPanelChange(activePanel === panel ? null : panel);
   };
 
-  const isPanelActive =
-    activePanel === "directory" || activePanel === "equalizer";
-
   const activeRedButton = hoveredPanel || activePanel;
+  const isTrayOpen = isOpen || isPanelActive;
 
   return (
     <div className={styles.container}>
+      {!isPanelActive && (
+        <div
+          className={styles.triggerZone}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          data-no-window-drag
+        />
+      )}
+
       {isPanelActive && (
         <div className={styles.navigator}>
           <button
@@ -94,9 +141,13 @@ function Sidebar({ activePanel, onPanelChange }) {
       )}
 
       <div
-        className={styles.tray}
+        className={`${styles.tray} ${isTrayOpen ? styles.trayOpen : ""}`}
         data-no-window-drag
-        onMouseLeave={() => setHoveredPanel(null)}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={() => {
+          setHoveredPanel(null);
+          handleMouseLeave();
+        }}
       >
         <button
           className={`${styles.iconButton} ${activeRedButton === "directory" ? styles.active : ""}`}

@@ -6,6 +6,8 @@ function MiniProgressBar() {
   const { currentTime, duration, handleSeek, setIsSeeking } = useAudio();
   const progressBarRef = useRef(null);
   const [isScrubbing, setIsScrubbing] = useState(false);
+  const [scrubPercent, setScrubPercent] = useState(null);
+  const isDraggingRef = useRef(false);
 
   const validDuration =
     typeof duration === "number" && Number.isFinite(duration) && duration > 0
@@ -17,25 +19,31 @@ function MiniProgressBar() {
       : 0;
 
   const progressPercentage =
-    validDuration > 0
-      ? Math.max(0, Math.min(100, (validCurrentTime / validDuration) * 100))
-      : 0;
+    scrubPercent !== null
+      ? scrubPercent * 100
+      : validDuration > 0
+        ? Math.max(0, Math.min(100, (validCurrentTime / validDuration) * 100))
+        : 0;
 
-  const seekFromClientX = (clientX) => {
-    if (!progressBarRef.current || validDuration <= 0) return;
+  const getTimeFromClientX = (clientX) => {
+    if (!progressBarRef.current || validDuration <= 0)
+      return { time: 0, ratio: 0 };
     const rect = progressBarRef.current.getBoundingClientRect();
-    if (rect.width <= 0) return;
+    if (rect.width <= 0) return { time: 0, ratio: 0 };
     const clickX = clientX - rect.left;
-    const ratio = Math.max(0, Math.min(1, clickX / rect.width));
-    const newTime = ratio * validDuration;
-    handleSeek(newTime);
+    let ratio = Math.max(0, Math.min(1, clickX / rect.width));
+    if (ratio <= 0.005) ratio = 0;
+    return { time: ratio * validDuration, ratio };
   };
 
   const handleMouseDown = (e) => {
     e.stopPropagation();
-    if (e.button === 0) {
+    if (e.button === 0 && validDuration > 0) {
+      isDraggingRef.current = false;
       setIsScrubbing(true);
-      seekFromClientX(e.clientX);
+      const { time, ratio } = getTimeFromClientX(e.clientX);
+      setScrubPercent(ratio);
+      handleSeek(time);
     }
   };
 
@@ -43,13 +51,21 @@ function MiniProgressBar() {
     if (!isScrubbing) return;
 
     const handleMouseMove = (e) => {
+      isDraggingRef.current = true;
       setIsSeeking(true);
-      seekFromClientX(e.clientX);
+      const { ratio } = getTimeFromClientX(e.clientX);
+      setScrubPercent(ratio);
     };
 
-    const handleMouseUp = () => {
+    const handleMouseUp = (e) => {
+      if (isDraggingRef.current) {
+        const { time } = getTimeFromClientX(e.clientX);
+        handleSeek(time);
+      }
       setIsScrubbing(false);
       setIsSeeking(false);
+      setScrubPercent(null);
+      isDraggingRef.current = false;
     };
 
     window.addEventListener("mousemove", handleMouseMove);
@@ -58,7 +74,7 @@ function MiniProgressBar() {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [isScrubbing, validDuration]);
+  }, [isScrubbing, validDuration, handleSeek, setIsSeeking]);
 
   return (
     <div

@@ -6,6 +6,8 @@ function ProgressBar({ currentTime, duration, onSeek }) {
   const { setIsSeeking } = useAudio();
   const progressBarRef = useRef(null);
   const [isScrubbing, setIsScrubbing] = useState(false);
+  const [scrubPercent, setScrubPercent] = useState(null);
+  const isDraggingRef = useRef(false);
 
   const validDuration =
     typeof duration === "number" && Number.isFinite(duration) && duration > 0
@@ -17,29 +19,32 @@ function ProgressBar({ currentTime, duration, onSeek }) {
       : 0;
 
   const progressPercentage =
-    validDuration > 0
-      ? Math.max(0, Math.min(100, (validCurrentTime / validDuration) * 100))
-      : 0;
+    scrubPercent !== null
+      ? scrubPercent * 100
+      : validDuration > 0
+        ? Math.max(0, Math.min(100, (validCurrentTime / validDuration) * 100))
+        : 0;
 
-  const seekFromClientX = (clientX) => {
-    if (!progressBarRef.current || validDuration <= 0) return;
+  const getTimeFromClientX = (clientX) => {
+    if (!progressBarRef.current || validDuration <= 0)
+      return { time: 0, ratio: 0 };
     const rect = progressBarRef.current.getBoundingClientRect();
-    if (rect.width <= 0) return;
+    if (rect.width <= 0) return { time: 0, ratio: 0 };
     const clickPosition = clientX - rect.left;
-    let clickPercentage = clickPosition / rect.width;
-
-    clickPercentage = Math.max(0, Math.min(clickPercentage, 1));
-    if (clickPercentage <= 0.01) clickPercentage = 0;
-
-    const newTime = validDuration * clickPercentage;
-    onSeek(newTime);
+    let ratio = clickPosition / rect.width;
+    ratio = Math.max(0, Math.min(ratio, 1));
+    if (ratio <= 0.005) ratio = 0;
+    return { time: validDuration * ratio, ratio };
   };
 
   const handleMouseDown = (e) => {
     e.stopPropagation();
-    if (e.button === 0) {
+    if (e.button === 0 && validDuration > 0) {
+      isDraggingRef.current = false;
       setIsScrubbing(true);
-      seekFromClientX(e.clientX);
+      const { time, ratio } = getTimeFromClientX(e.clientX);
+      setScrubPercent(ratio);
+      onSeek(time);
     }
   };
 
@@ -47,13 +52,21 @@ function ProgressBar({ currentTime, duration, onSeek }) {
     if (!isScrubbing) return;
 
     const handleMouseMove = (e) => {
+      isDraggingRef.current = true;
       setIsSeeking(true);
-      seekFromClientX(e.clientX);
+      const { ratio } = getTimeFromClientX(e.clientX);
+      setScrubPercent(ratio);
     };
 
-    const handleMouseUp = () => {
+    const handleMouseUp = (e) => {
+      if (isDraggingRef.current) {
+        const { time } = getTimeFromClientX(e.clientX);
+        onSeek(time);
+      }
       setIsScrubbing(false);
       setIsSeeking(false);
+      setScrubPercent(null);
+      isDraggingRef.current = false;
     };
 
     window.addEventListener("mousemove", handleMouseMove);
@@ -62,7 +75,7 @@ function ProgressBar({ currentTime, duration, onSeek }) {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [isScrubbing, validDuration]);
+  }, [isScrubbing, validDuration, onSeek, setIsSeeking]);
 
   return (
     <div

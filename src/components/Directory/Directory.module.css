@@ -141,8 +141,8 @@
   pointer-events: none;
 }
 
-.songTitle:hover,
-.songItem:hover .songTitle {
+.songList:not(.isDragging) .songTitle:hover,
+.songList:not(.isDragging) .songItem:hover .songTitle {
   color: #ff5353;
 }
 

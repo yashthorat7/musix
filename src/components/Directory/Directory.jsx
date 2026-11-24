@@ -288,7 +288,11 @@ function Directory({
       className={`${styles.container} ${isOpen ? styles.open : ""}`}
       data-no-window-drag
     >
-      <div className={styles.songList} ref={songListRef} data-no-window-drag>
+      <div
+        className={`${styles.songList} ${draggedIndex >= 0 ? styles.isDragging : ""}`}
+        ref={songListRef}
+        data-no-window-drag
+      >
         {songs.length === 0 ? (
           <div className={styles.emptyMessage}>No songs in queue</div>
         ) : (
